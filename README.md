@@ -21,10 +21,10 @@
 * **JavaScript (ES6+)**: 实现所有核心交互逻辑，包括数据处理、DOM操作和事件监听。
 
 ## 📂 文件结构 (File Structure)
-├── index.html         # 主应用页面
-├── style.css          # 全局样式表
-├── script.js          # 核心交互逻辑脚本
-├── database.js        # 题库数据文件
+├── index.html         # 主应用页面 \
+├── style.css          # 全局样式表 \
+├── script.js          # 核心交互逻辑脚本 \
+├── database.js        # 题库数据文件 \
 └── converter.html     # (可选工具) 用于将PDF/Word文本批量转换为题库JS格式
 ## 🚀 如何使用 (How to Use)
 

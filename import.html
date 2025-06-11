@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>题库批量导入工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f0f2f5; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        input[type="file"] { display: block; margin-bottom: 20px; }
+        #output { width: 100%; height: 400px; font-family: monospace; font-size: 14px; white-space: pre; border: 1px solid #ccc; border-radius: 4px; }
+        .info { background: #e6f7ff; border: 1px solid #91d5ff; padding: 10px; border-radius: 4px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>题库批量导入工具</h1>
+        <div class="info">
+            <strong>使用说明：</strong><br>
+            1. 准备好您的 Excel 文件，并另存为 CSV 格式。<br>
+            2. 确保 CSV 文件的列头为：id, type, question, options, answer。<br>
+            3. 点击下方按钮选择您的 CSV 文件，下方文本框将自动生成代码。<br>
+            4. 全选并复制生成的内容，粘贴替换掉 `database.js` 文件的全部内容。
+        </div>
+        <input type="file" id="csvFile" accept=".csv">
+        <textarea id="output" readonly placeholder="这里将生成 database.js 的内容..."></textarea>
+    </div>
+
+    <script>
+        // 当用户选择了文件后，触发此事件
+        document.getElementById('csvFile').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            // 使用 Papa Parse 解析 CSV 文件
+            Papa.parse(file, {
+                header: true, // 将第一行作为表头（对象的键）
+                skipEmptyLines: true, // 跳过空行
+                // 解析完成后的回调函数
+                complete: function(results) {
+                    // results.data 是一个由题目对象组成的数组
+                    const processedData = results.data.map(item => {
+                        // 关键处理步骤：将 options 字符串按 | 分割成数组
+                        // 如果 options 字段不存在或为空，则返回一个空数组
+                        const optionsArray = item.options ? item.options.split('|') : [];
+                        
+                        return {
+                            id: parseInt(item.id, 10), // 将 id 转换为数字
+                            type: item.type,
+                            question: item.question,
+                            options: optionsArray, // 使用处理后的数组
+                            answer: item.answer
+                        };
+                    });
+                    
+                    // 生成最终要粘贴到 database.js 的代码
+                    const fileContent = `const questionBank = ${JSON.stringify(processedData, null, 2)};`;
+
+                    // 将代码显示在文本框中
+                    document.getElementById('output').value = fileContent;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

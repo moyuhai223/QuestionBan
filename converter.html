@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>题库原始文本到JS格式转换工具</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; padding: 15px; box-sizing: border-box; background-color: #f0f2f5; }
+        h1 { color: #333; text-align: center; margin-top: 0; }
+        .container { display: flex; flex: 1; gap: 15px; }
+        .panel { display: flex; flex-direction: column; flex: 1; }
+        textarea { width: 100%; flex: 1; font-family: monospace; font-size: 14px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; resize: none; box-sizing: border-box; }
+        button { font-size: 16px; padding: 10px 20px; margin: 15px 0; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover { background-color: #0056b3; }
+        label { font-weight: bold; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h1>题库原始文本转换工具</h1>
+    <div class="container">
+        <div class="panel">
+            <label for="rawText">第一步：在此处粘贴从PDF或Word复制的全部题目文本</label>
+            <textarea id="rawText" placeholder="例如：
+1. 2021年6月10日,第十三届全国人大常委会...
+A. 第十九次,9月1日 B. 第二十九次,9月1日...
+答案: B
+
+1. 任何人都有组织参加消防灭火的义务？ (×)
+..."></textarea>
+        </div>
+        <div class="panel">
+            <label for="outputJs">第三步：在此处复制生成的JS代码</label>
+            <textarea id="outputJs" readonly placeholder="转换后的JS代码将出现在这里..."></textarea>
+        </div>
+    </div>
+    <button id="convertButton">第二步：点击开始转换</button>
+
+    <script>
+        document.getElementById('convertButton').addEventListener('click', () => {
+            const rawText = document.getElementById('rawText').value;
+            const lines = rawText.split(/\r?\n/);
+
+            let questions = [];
+            let currentQuestion = null;
+            let idCounter = 1;
+
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) continue;
+
+                // 匹配判断题: "1. xxxx (√)" or "1. xxxx (×)"
+                const trueFalseMatch = trimmedLine.match(/^(\d+)[．\.]\s*(.+?)\s*（([√×])）$/);
+                if (trueFalseMatch) {
+                    if (currentQuestion) questions.push(currentQuestion);
+                    questions.push({
+                        id: idCounter++,
+                        type: '判断题',
+                        question: `${trueFalseMatch[1]}. ${trueFalseMatch[2]}`,
+                        options: [],
+                        answer: trueFalseMatch[3]
+                    });
+                    currentQuestion = null;
+                    continue;
+                }
+
+                // 匹配选择题题干: "1. xxxx" or "1、xxxx"
+                const questionMatch = trimmedLine.match(/^(\d+)[、．\.]\s*(.+)/);
+                if (questionMatch) {
+                    if (currentQuestion) questions.push(currentQuestion); // 保存上一题
+                    currentQuestion = {
+                        id: idCounter++,
+                        type: '未知', // 默认为未知
+                        question: trimmedLine,
+                        options: [],
+                        answer: ''
+                    };
+                    continue;
+                }
+
+                // 匹配选项: "A. xxxx" or "A xxxx"
+                const optionsMatch = trimmedLine.match(/^[A-Z][\s．\.]/);
+                if (currentQuestion && optionsMatch) {
+                    // 将一行内的多个选项拆分
+                    const parts = trimmedLine.split(/\s+(?=[A-Z][\s．\.])/);
+                    currentQuestion.options.push(...parts);
+                    continue;
+                }
+                
+                // 匹配答案: "答案: A" or "答案：ABCD"
+                const answerMatch = trimmedLine.match(/^[答案|【答案解析】]+[:：]\s*([A-Z√×]+)/);
+                if (currentQuestion && answerMatch) {
+                    currentQuestion.answer = answerMatch[1];
+                    // 根据答案长度判断题型
+                    currentQuestion.type = currentQuestion.answer.length > 1 ? '多选题' : '单选题';
+                    questions.push(currentQuestion);
+                    currentQuestion = null; // 重置
+                }
+            }
+             // 添加最后一题
+            if (currentQuestion) {
+                 questions.push(currentQuestion);
+            }
+
+            // 格式化输出
+            const outputString = `const questionBank = ${JSON.stringify(questions, null, 2)};`;
+            document.getElementById('outputJs').value = outputString;
+            alert(`转换完成！共成功解析 ${questions.length} 道题目。`);
+        });
+    </script>
+</body>
+</html>

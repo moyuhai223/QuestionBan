@@ -1,0 +1,213 @@
+/* style.css - 最终样式版 */
+
+/* 全局与基础样式 */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #f4f7f9;
+    margin: 0;
+    padding: 10px;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* 主容器 */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* ▼▼▼ 新增和修改的样式 ▼▼▼ */
+.header {
+    text-align: center; /* 让标题和说明整体居中 */
+    margin-bottom: 25px;
+    border-bottom: 1px solid #eee; /* 在标题区域下方增加一条分割线 */
+    padding-bottom: 20px;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-bottom: 5px; /* 减小和副标题的间距 */
+    font-size: 2em;
+}
+
+.subtitle {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #7f8c8d;
+    font-size: 1rem;
+}
+
+.instructions {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 0;
+}
+
+h2 {
+    color: #2c3e50;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+    font-size: 1.2em;
+}
+/* ▲▲▲ 新增和修改的样式结束 ▲▲▲ */
+
+/* 搜索框区域 */
+.search-box {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+#searchInput {
+    flex-grow: 1;
+    padding: 12px 15px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px 0 0 4px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    -webkit-appearance: none;
+}
+
+#searchInput:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+}
+
+#clearButton {
+    padding: 12px 20px;
+    font-size: 1rem;
+    border: none;
+    background-color: #95a5a6;
+    color: white;
+    cursor: pointer;
+    border-radius: 0 4px 4px 0;
+    transition: background-color 0.3s;
+}
+
+#clearButton:hover {
+    background-color: #7f8c8d;
+}
+
+/* 主要内容区域布局 */
+.content-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+}
+
+.results-panel,
+.details-panel {
+    flex: 1 1 400px;
+    min-width: 0; 
+}
+
+/* 搜索结果列表 */
+#resultsList {
+    list-style-type: none;
+    padding: 0;
+    height: 500px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 5px;
+}
+
+#resultsList li {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    word-break: break-all;
+}
+
+#resultsList li:last-child {
+    border-bottom: none;
+}
+
+#resultsList li:hover {
+    background-color: #ebf5fb;
+    color: #333;
+}
+
+#resultsList li.selected {
+    background-color: #3498db;
+    color: white;
+    border-color: #2980b9;
+}
+
+#resultsList li.placeholder,
+#detailsContent .placeholder {
+    color: #888;
+    text-align: center;
+    padding: 20px;
+    cursor: default;
+    font-style: italic;
+}
+
+#resultsList li.placeholder:hover {
+    background-color: transparent;
+    color: #888;
+}
+
+/* 题目详情与答案区域 */
+#detailsContent .question-text {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+}
+
+#detailsContent .options-list {
+    list-style-type: none;
+    padding-left: 0;
+    margin-bottom: 20px;
+}
+
+#detailsContent .options-list li {
+    margin-bottom: 10px;
+    color: #555;
+    padding: 8px;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+}
+
+#detailsContent .answer {
+    margin-top: 20px;
+    padding: 12px 15px;
+    background-color: #e8fadf;
+    border-left: 4px solid #4caf50;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+#detailsContent .answer strong {
+    font-weight: bold; 
+    color: #1e6a21;
+}
+
+/* 响应式媒体查询 */
+@media (max-width: 768px) {
+    body {
+        padding: 5px;
+    }
+    .container {
+        padding: 10px;
+    }
+    .content-area {
+        flex-direction: column;
+        gap: 20px;
+    }
+    #resultsList {
+        height: auto;
+        max-height: 40vh;
+    }
+    h1 {
+        font-size: 1.5em;
+    }
+    h2 {
+        font-size: 1.1em;
+    }
+}

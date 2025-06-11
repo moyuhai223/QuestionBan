@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>题库导出为Word文本工具</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 20px; background-color: #f0f2f5; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        .controls { display: flex; gap: 15px; margin-bottom: 20px; }
+        button { font-size: 16px; padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; flex: 1; }
+        button#copyButton { background-color: #007bff; }
+        button:hover { opacity: 0.8; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #output { width: 100%; height: 60vh; font-family: 'Songti SC', 'SimSun', serif; font-size: 16px; white-space: pre-wrap; /* 关键：保留换行和空格 */ border: 1px solid #ccc; border-radius: 4px; padding: 15px; overflow-y: auto; background-color: #f8f9fa; }
+        .info { background: #e6f7ff; border: 1px solid #91d5ff; padding: 10px 15px; border-radius: 4px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>题库导出工具</h1>
+        <div class="info">
+            <strong>使用说明：</strong><br>
+            1. 确保 `database.js` 文件与此页面在同一文件夹内。<br>
+            2. 点击“生成Word格式文本”按钮。<br>
+            3. 点击“复制全部内容”按钮，然后到Word文档中粘贴即可。
+        </div>
+        <div class="controls">
+            <button id="generateButton">1. 生成Word格式文本</button>
+            <button id="copyButton" disabled>2. 复制全部内容</button>
+        </div>
+        <div id="output" contenteditable="true" aria-placeholder="生成的文本将显示在这里..."></div>
+    </div>
+
+    <script src="database.js"></script>
+
+    <script>
+        // 获取页面元素
+        const generateButton = document.getElementById('generateButton');
+        const copyButton = document.getElementById('copyButton');
+        const outputDiv = document.getElementById('output');
+
+        // 生成按钮的点击事件
+        generateButton.addEventListener('click', () => {
+            if (typeof questionBank === 'undefined' || questionBank.length === 0) {
+                outputDiv.innerText = "错误：未找到或题库为空，请检查 database.js 文件是否存在且内容正确。";
+                return;
+            }
+
+            const singleChoice = questionBank.filter(q => q.type === '单选题');
+            const multiChoice = questionBank.filter(q => q.type === '多选题');
+            const trueFalse = questionBank.filter(q => q.type === '判断题');
+
+            let outputLines = ["安全生产知识竞赛题库\n"];
+
+            // --- 单选题部分 ---
+            if (singleChoice.length > 0) {
+                outputLines.push("一、 单项选择题\n");
+                singleChoice.forEach((q, index) => {
+                    let questionContent = `${index + 1}. ${q.question.replace(/^\d+[、．.]\s*/, '')}`;
+                    outputLines.push(questionContent);
+                    if (q.options && q.options.length > 0) {
+                        q.options.forEach(opt => {
+                            outputLines.push(`   ${opt}`);
+                        });
+                    }
+                    outputLines.push(`【答案】：${q.answer}`);
+                });
+            }
+            
+            // --- 多选题部分 ---
+            if (multiChoice.length > 0) {
+                outputLines.push("\n二、 多项选择题\n");
+                multiChoice.forEach((q, index) => {
+                    outputLines.push(`${index + 1}. ${q.question.replace(/^\d+[、．.]\s*/, '')}`);
+                    if (q.options && q.options.length > 0) {
+                        q.options.forEach(opt => {
+                            outputLines.push(`   ${opt}`);
+                        });
+                    }
+                    outputLines.push(`【答案】：${q.answer}`);
+                });
+            }
+
+            // --- 判断题部分 ---
+            if (trueFalse.length > 0) {
+                outputLines.push("\n三、 判断题\n");
+                trueFalse.forEach((q, index) => {
+                    outputLines.push(`${index + 1}. ${q.question.replace(/^\d+[、．.]\s*/, '')}`);
+                    outputLines.push(`【答案】：${q.answer}`);
+                });
+            }
+
+            // 将生成的内容放入div中
+            outputDiv.innerText = outputLines.join('\n');
+            copyButton.disabled = false;
+            alert('生成成功！现在可以复制内容了。');
+        });
+
+        // 复制按钮的点击事件
+        copyButton.addEventListener('click', () => {
+            const textToCopy = outputDiv.innerText;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert('内容已成功复制到剪贴板！');
+                copyButton.innerText = '已复制!';
+                setTimeout(() => {
+                    copyButton.innerText = '2. 复制全部内容';
+                }, 2000);
+            }).catch(err => {
+                console.error('复制失败: ', err);
+                alert('复制失败，请手动复制。');
+            });
+        });
+    </script>
+</body>
+</html>

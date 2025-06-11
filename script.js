@@ -1,18 +1,12 @@
-// script.js - 最终功能完整且性能优化版
+// script.js - 最终功能完整版 (包含性能优化、清空、键盘导航)
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ==================================================================
-    // ▼▼▼ 新增的优化步骤：预处理数据，建立搜索索引 ▼▼▼
-    // 这段代码只在页面加载时运行一次
-    // ==================================================================
+    // --- 预处理数据，建立搜索索引 (性能优化) ---
     questionBank.forEach(q => {
-        // 将题干和所有选项合并成一个长字符串，并全部转换为小写
-        // 这样后续搜索时，就无需再对每个条目进行重复的大小写转换和拼接
         const optionsText = q.options.join(' ');
         q.searchableText = (q.question + ' ' + optionsText).toLowerCase();
     });
-
 
     // --- 获取页面元素 ---
     const searchInput = document.getElementById('searchInput');
@@ -21,12 +15,56 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearButton = document.getElementById('clearButton');
 
     // --- 事件监听 ---
+
+    // 清空按钮事件
     clearButton.addEventListener('click', () => {
         searchInput.value = '';
         searchInput.dispatchEvent(new Event('input', { bubbles: true }));
         searchInput.focus();
     });
 
+    // 键盘导航事件
+    document.addEventListener('keydown', (event) => {
+        // 只处理上下方向键
+        if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
+            return;
+        }
+
+        // 阻止方向键的默认行为（如滚动整个页面）
+        event.preventDefault();
+
+        const items = document.querySelectorAll('#resultsList li:not(.placeholder)');
+        if (items.length === 0) {
+            return; 
+        }
+
+        const currentSelected = document.querySelector('#resultsList li.selected');
+        let nextIndex = 0; // 默认目标是第一个
+
+        if (currentSelected) {
+            const currentIndex = Array.from(items).indexOf(currentSelected);
+            if (event.key === 'ArrowDown') {
+                // 如果当前索引不是最后一个，则索引+1
+                if (currentIndex < items.length - 1) {
+                    nextIndex = currentIndex + 1;
+                } else {
+                    nextIndex = currentIndex; // 保持在最后一个
+                }
+            } else { // ArrowUp
+                // 如果当前索引不是第一个，则索引-1
+                if (currentIndex > 0) {
+                    nextIndex = currentIndex - 1;
+                } else {
+                    nextIndex = currentIndex; // 保持在第一个
+                }
+            }
+        }
+        
+        const newId = items[nextIndex].dataset.id;
+        showDetails(newId);
+    });
+
+    // --- 防抖函数 ---
     const debounce = (func, delay) => {
         let timeoutId;
         return (...args) => {
@@ -49,27 +87,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return;
         }
-
-        // ==================================================================
-        // ▼▼▼ 优化的搜索逻辑 ▼▼▼
-        // 直接在预处理好的 searchableText 字段中进行一次搜索即可
-        // ==================================================================
-        const filteredResults = questionBank.filter(q => 
-            q.searchableText.includes(keyword)
-        );
         
+        const filteredResults = questionBank.filter(q => q.searchableText.includes(keyword));
         displayResults(filteredResults);
     };
 
     const displayResults = (results) => {
         resultsList.innerHTML = '';
-
         if (results.length === 0) {
             resultsList.innerHTML = '<li class="placeholder">未找到相关题目。</li>';
             detailsContent.innerHTML = '<p class="placeholder">请重新输入关键词。</p>';
             return;
         }
-
         results.forEach(q => {
             const listItem = document.createElement('li');
             listItem.dataset.id = q.id;
@@ -79,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             resultsList.appendChild(listItem);
         });
-
         if (results.length > 0) {
             showDetails(results[0].id);
         }
@@ -89,11 +117,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const allListItems = document.querySelectorAll('#resultsList li');
         allListItems.forEach(item => item.classList.remove('selected'));
         const currentListItem = document.querySelector(`#resultsList li[data-id='${questionId}']`);
+        
         if (currentListItem) {
             currentListItem.classList.add('selected');
+            // 自动滚动到可视区域
+            currentListItem.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest'
+            });
         }
 
-        const question = questionBank.find(q => q.id === questionId);
+        const question = questionBank.find(q => q.id === parseInt(questionId, 10));
         if (!question) return;
 
         let detailsHtml = `<div class="question-text">${question.question}</div>`;
@@ -104,10 +138,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             detailsHtml += '</ul>';
         }
-
         let formattedAnswer = '';
         const { type, answer, options } = question;
-
         switch (type) {
             case '单选题':
                 const singleChoiceAnswer = options.find(opt => opt.trim().startsWith(answer));
@@ -124,13 +156,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 formattedAnswer = answer;
                 break;
         }
-
         if (type === '多选题' && formattedAnswer.includes('<br>')) {
             detailsHtml += `<div class="answer"><strong>答案：</strong><br>${formattedAnswer}</div>`;
         } else {
             detailsHtml += `<div class="answer"><strong>答案：</strong> ${formattedAnswer}</div>`;
         }
-        
         detailsContent.innerHTML = detailsHtml;
     };
 
@@ -138,6 +168,5 @@ document.addEventListener('DOMContentLoaded', () => {
     const debouncedSearch = debounce(performSearch, 300);
     searchInput.addEventListener('input', debouncedSearch);
     
-    // 初始化页面提示信息
     resultsList.innerHTML = '<li class="placeholder">请输入关键词开始搜索...</li>';
 });

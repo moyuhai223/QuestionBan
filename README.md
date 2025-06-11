@@ -25,7 +25,8 @@
 ├── style.css          # 全局样式表 \
 ├── script.js          # 核心交互逻辑脚本 \
 ├── database.js        # 题库数据文件 \
-└── converter.html     # (可选工具) 用于将PDF/Word文本批量转换为题库JS格式
+└── converter.html     # (可选工具) 用于将PDF/Word文本批量转换为题库JS格式 \
+└── export.html        # (可选工具) 用于将题库JS格式批量转换为适合Word文本格式
 ## 🚀 如何使用 (How to Use)
 
 1.  将项目所有文件下载到本地。

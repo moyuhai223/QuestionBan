@@ -16,9 +16,16 @@
     <div class="container">
         <div class="header">
             <p class="instructions">
-                <strong>操作说明：</strong>键入（题目或选项）中的关键词 即可实时搜索题目 <br> 字母不区分大小写,↑↓键可以选择题目.
+                <strong>操作说明：</strong>键入（题目或选项）中的关键词 即可实时搜索，手机端建议使用浏览器的桌面版访问 <br> 字母不区分大小写,↑↓键可以选择题目.
             </p>
         </div>
+
+        <div id="category-filter" class="category-filter">
+            <button class="filter-btn active" data-type="单选题">单选题</button>
+            <button class="filter-btn" data-type="多选题">多选题</button>
+            <button class="filter-btn" data-type="判断题">判断题</button>
+        </div>
+
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="请输入模糊关键词进行搜索...">
             <button id="clearButton">清空</button>
@@ -39,8 +46,8 @@
         </div>
     </div>
 
-    <script src="database.js?v=1.0"></script>
-    <script src="script.js"></script>
+    <script src="database.js?v=1.1"></script>
+    <script src="script.js?v=1.0"></script>
 
 </body>
 </html>

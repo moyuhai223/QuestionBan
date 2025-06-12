@@ -1,8 +1,7 @@
-// script.js - 最终功能完整版 (包含性能优化、清空、键盘导航)
-
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 预处理数据，建立搜索索引 (性能优化) ---
+    // 此段代码只在页面加载时运行一次
     questionBank.forEach(q => {
         const optionsText = q.options.join(' ');
         q.searchableText = (q.question + ' ' + optionsText).toLowerCase();
@@ -13,8 +12,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsList = document.getElementById('resultsList');
     const detailsContent = document.getElementById('detailsContent');
     const clearButton = document.getElementById('clearButton');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+
+    // --- 状态变量 ---
+    let currentFilterType = '单选题'; // 默认筛选类型
 
     // --- 事件监听 ---
+
+    // 分类筛选按钮的点击事件
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            currentFilterType = button.dataset.type;
+            // 切换分类时，仅当搜索框有内容时才重新触发搜索
+            if (searchInput.value.trim() !== '') {
+                performSearch();
+            }
+        });
+    });
 
     // 清空按钮事件
     clearButton.addEventListener('click', () => {
@@ -25,38 +41,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 键盘导航事件
     document.addEventListener('keydown', (event) => {
-        // 只处理上下方向键
-        if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
-            return;
-        }
-
-        // 阻止方向键的默认行为（如滚动整个页面）
+        if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
         event.preventDefault();
 
         const items = document.querySelectorAll('#resultsList li:not(.placeholder)');
-        if (items.length === 0) {
-            return; 
-        }
+        if (items.length === 0) return;
 
         const currentSelected = document.querySelector('#resultsList li.selected');
-        let nextIndex = 0; // 默认目标是第一个
+        let nextIndex = 0;
 
         if (currentSelected) {
             const currentIndex = Array.from(items).indexOf(currentSelected);
             if (event.key === 'ArrowDown') {
-                // 如果当前索引不是最后一个，则索引+1
-                if (currentIndex < items.length - 1) {
-                    nextIndex = currentIndex + 1;
-                } else {
-                    nextIndex = currentIndex; // 保持在最后一个
-                }
+                nextIndex = (currentIndex < items.length - 1) ? currentIndex + 1 : currentIndex;
             } else { // ArrowUp
-                // 如果当前索引不是第一个，则索引-1
-                if (currentIndex > 0) {
-                    nextIndex = currentIndex - 1;
-                } else {
-                    nextIndex = currentIndex; // 保持在第一个
-                }
+                nextIndex = (currentIndex > 0) ? currentIndex - 1 : currentIndex;
             }
         }
         
@@ -64,48 +63,48 @@ document.addEventListener('DOMContentLoaded', () => {
         showDetails(newId);
     });
 
-    // --- 防抖函数 ---
+    // --- 防抖函数 (防止输入时过于频繁地触发搜索) ---
     const debounce = (func, delay) => {
         let timeoutId;
         return (...args) => {
             clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-                func.apply(this, args);
-            }, delay);
+            timeoutId = setTimeout(() => func.apply(this, args), delay);
         };
     };
 
     // --- 核心功能函数 ---
+
+    // 执行搜索
     const performSearch = () => {
         const keyword = searchInput.value.trim().toLowerCase();
+        
+        // 如果没有关键词，则重置界面并停止执行
         if (!keyword) {
-            resultsList.innerHTML = '<li class="placeholder">请输入关键词开始搜索...</li>';
-            detailsContent.innerHTML = '<p class="placeholder">请从左侧搜索结果中点击一个题目以查看详情。</p>';
-            const selectedItem = document.querySelector('#resultsList li.selected');
-            if (selectedItem) {
-                selectedItem.classList.remove('selected');
-            }
+            resultsList.innerHTML = '<li class="placeholder">请在上方输入关键词开始搜索...</li>';
+            detailsContent.innerHTML = '<p class="placeholder">输入关键词后，结果将在此显示。</p>';
             return;
         }
+
+        // 只有在有关键词时，才执行筛选
+        const questionsOfType = questionBank.filter(q => q.type === currentFilterType);
+        const filteredResults = questionsOfType.filter(q => q.searchableText.includes(keyword));
         
-        const filteredResults = questionBank.filter(q => q.searchableText.includes(keyword));
         displayResults(filteredResults);
     };
 
+    // 渲染搜索结果列表
     const displayResults = (results) => {
         resultsList.innerHTML = '';
         if (results.length === 0) {
             resultsList.innerHTML = '<li class="placeholder">未找到相关题目。</li>';
-            detailsContent.innerHTML = '<p class="placeholder">请重新输入关键词。</p>';
+            detailsContent.innerHTML = '<p class="placeholder">请尝试其他关键词或分类。</p>';
             return;
         }
         results.forEach(q => {
             const listItem = document.createElement('li');
             listItem.dataset.id = q.id;
             listItem.textContent = `[${q.type}] ${q.question.substring(0, 50)}...`;
-            listItem.addEventListener('click', () => {
-                showDetails(q.id);
-            });
+            listItem.addEventListener('click', () => showDetails(q.id));
             resultsList.appendChild(listItem);
         });
         if (results.length > 0) {
@@ -113,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // 显示题目详情
     const showDetails = (questionId) => {
         const allListItems = document.querySelectorAll('#resultsList li');
         allListItems.forEach(item => item.classList.remove('selected'));
@@ -120,11 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (currentListItem) {
             currentListItem.classList.add('selected');
-            // 自动滚动到可视区域
-            currentListItem.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest'
-            });
+            currentListItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         const question = questionBank.find(q => q.id === parseInt(questionId, 10));
@@ -164,9 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
         detailsContent.innerHTML = detailsHtml;
     };
 
-    // --- 初始化事件绑定 ---
+    // --- 初始化 ---
     const debouncedSearch = debounce(performSearch, 300);
     searchInput.addEventListener('input', debouncedSearch);
     
-    resultsList.innerHTML = '<li class="placeholder">请输入关键词开始搜索...</li>';
+    // 初始化页面提示信息，不主动加载任何题目
+    resultsList.innerHTML = '<li class="placeholder">请在上方输入关键词开始搜索...</li>';
+    detailsContent.innerHTML = '<p class="placeholder">输入关键词后，结果将在此显示。</p>';
+
 });

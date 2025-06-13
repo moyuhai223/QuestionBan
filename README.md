@@ -33,12 +33,12 @@
 * **JavaScript (ES6+)**: 实现所有交互逻辑，包括数据处理、DOM操作、事件监听和性能优化。
 
 ## 📂 项目文件结构 (File Structure)
-├── index.html         # 主应用页面
-├── style.css          # 全局样式表
-├── script.js          # 所有交互逻辑脚本
-├── database.js        # 核心题库数据文件
-│
-├── converter.html     # 【开发者工具】从PDF/Word文本批量导入题库
+├── index.html         # 主应用页面 \
+├── style.css          # 全局样式表 \
+├── script.js          # 所有交互逻辑脚本 \
+├── database.js        # 核心题库数据文件 \
+│                                        \
+├── converter.html     # 【开发者工具】从PDF/Word文本批量导入题库\
 └── export.html        # 【开发者工具】将题库导出为Word文档格式
 ## 🚀 快速开始 (Quick Start)
 

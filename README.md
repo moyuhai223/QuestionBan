@@ -1,4 +1,4 @@
-# 今天开“卷” - 终极版安全生产知识题库
+# 今天开“卷” 
 
 ![项目版本](https://img.shields.io/badge/Version-2.0%20(Feature%20Complete)-brightgreen) ![技术栈](https://img.shields.io/badge/Tech-HTML%2C%20CSS%2C%20JS-blue) ![兼容性](https://img.shields.io/badge/Responsive-PC%20%26%20Mobile-yellow)
 
@@ -33,3 +33,40 @@
 * **JavaScript (ES6+)**: 实现所有交互逻辑，包括数据处理、DOM操作、事件监听和性能优化。
 
 ## 📂 项目文件结构 (File Structure)
+├── index.html         # 主应用页面
+├── style.css          # 全局样式表
+├── script.js          # 所有交互逻辑脚本
+├── database.js        # 核心题库数据文件
+│
+├── converter.html     # 【开发者工具】从PDF/Word文本批量导入题库
+└── export.html        # 【开发者工具】将题库导出为Word文档格式
+## 🚀 快速开始 (Quick Start)
+
+1.  将项目所有文件下载或克隆到本地同一个文件夹中。
+2.  用现代浏览器（如 Chrome, Firefox, Edge）直接打开 `index.html` 文件即可开始使用。
+
+## 💾 数据管理：导入与导出
+
+我们创建了两个强大的工具来方便您管理题库数据。
+
+#### 1. 批量导入 (`converter.html`)
+当您有大量来自PDF或Word文档的题目时：
+1.  用浏览器打开 `converter.html`。
+2.  将源文档的全部文本复制并粘贴到左侧的输入框。
+3.  点击“开始转换”按钮。
+4.  右侧会生成格式化的JS代码，全选并复制。
+5.  用复制的内容完整替换 `database.js` 文件的内容并保存。
+
+#### 2. 导出为Word文档 (`export.html`)
+当您需要打印或存档题库时：
+1.  用浏览器打开 `export.html` (请确保 `database.js` 文件在同级目录)。
+2.  点击“生成Word格式文本”按钮。
+3.  点击“复制全部内容”按钮。
+4.  打开一个空白的Word文档，直接粘贴即可。我们提供了两种排版格式（答案跟随题目或答案分离），您可以根据需要修改 `export.html` 中的逻辑。
+
+## 🔮 未来可以“卷”的方向 (Future Improvements)
+
+这个项目还有巨大的扩展潜力，例如：
+* **模拟考试**: 增加随机抽题、计时、自动判分功能。
+* **错题本**: 记录用户答错的题目，并提供单独练习的入口。
+* **用户系统**: 增加登录注册，将学习进度、错题本等数据保存在云端。

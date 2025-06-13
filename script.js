@@ -1,7 +1,8 @@
+// script.js - 最终功能完整版 (修正初始加载逻辑)
+
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- 预处理数据，建立搜索索引 (性能优化) ---
-    // 此段代码只在页面加载时运行一次
+    // --- 预处理数据 ---
     questionBank.forEach(q => {
         const optionsText = q.options.join(' ');
         q.searchableText = (q.question + ' ' + optionsText).toLowerCase();
@@ -13,68 +14,80 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailsContent = document.getElementById('detailsContent');
     const clearButton = document.getElementById('clearButton');
     const filterButtons = document.querySelectorAll('.filter-btn');
+    const toggleViewBtn = document.getElementById('toggleViewBtn');
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    const header = document.querySelector('.header');
 
     // --- 状态变量 ---
-    let currentFilterType = '单选题'; // 默认筛选类型
+    let currentFilterType = '单选题';
+    let isDesktopView = false;
 
     // --- 事件监听 ---
+    toggleViewBtn.addEventListener('click', () => {
+        isDesktopView = !isDesktopView;
+        if (isDesktopView) {
+            viewportMeta.setAttribute('content', 'width=1200');
+            toggleViewBtn.innerHTML = '📱';
+            toggleViewBtn.title = '切换到移动视图';
+        } else {
+            viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0');
+            toggleViewBtn.innerHTML = '💻';
+            toggleViewBtn.title = '切换到桌面视图';
+        }
+    });
 
-    // 分类筛选按钮的点击事件
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
+            if (header) {
+                header.classList.add('hidden');
+            }
             filterButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
             currentFilterType = button.dataset.type;
-            // 切换分类时，仅当搜索框有内容时才重新触发搜索
-            if (searchInput.value.trim() !== '') {
-                performSearch();
-            }
+            // 切换分类时，如果搜索框有内容，则立即执行搜索，否则清空
+            performSearch();
         });
     });
 
-    // 清空按钮事件
     clearButton.addEventListener('click', () => {
         searchInput.value = '';
         searchInput.dispatchEvent(new Event('input', { bubbles: true }));
         searchInput.focus();
+        if (header) {
+            header.classList.remove('hidden');
+        }
     });
 
-    // 键盘导航事件
     document.addEventListener('keydown', (event) => {
         if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
         event.preventDefault();
-
         const items = document.querySelectorAll('#resultsList li:not(.placeholder)');
         if (items.length === 0) return;
-
         const currentSelected = document.querySelector('#resultsList li.selected');
         let nextIndex = 0;
-
         if (currentSelected) {
             const currentIndex = Array.from(items).indexOf(currentSelected);
-            if (event.key === 'ArrowDown') {
-                nextIndex = (currentIndex < items.length - 1) ? currentIndex + 1 : currentIndex;
-            } else { // ArrowUp
-                nextIndex = (currentIndex > 0) ? currentIndex - 1 : currentIndex;
+            if (event.key === 'ArrowDown' && currentIndex < items.length - 1) {
+                nextIndex = currentIndex + 1;
+            } else if (event.key === 'ArrowUp' && currentIndex > 0) {
+                nextIndex = currentIndex - 1;
+            } else {
+                nextIndex = currentIndex;
             }
         }
-        
         const newId = items[nextIndex].dataset.id;
         showDetails(newId);
     });
 
-    // --- 防抖函数 (防止输入时过于频繁地触发搜索) ---
     const debounce = (func, delay) => {
         let timeoutId;
         return (...args) => {
             clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => func.apply(this, args), delay);
+            setTimeout(() => func.apply(this, args), delay);
         };
     };
 
     // --- 核心功能函数 ---
-
-    // 执行搜索
     const performSearch = () => {
         const keyword = searchInput.value.trim().toLowerCase();
         
@@ -85,14 +98,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 只有在有关键词时，才执行筛选
         const questionsOfType = questionBank.filter(q => q.type === currentFilterType);
         const filteredResults = questionsOfType.filter(q => q.searchableText.includes(keyword));
-        
         displayResults(filteredResults);
     };
 
-    // 渲染搜索结果列表
     const displayResults = (results) => {
         resultsList.innerHTML = '';
         if (results.length === 0) {
@@ -111,26 +121,27 @@ document.addEventListener('DOMContentLoaded', () => {
             showDetails(results[0].id);
         }
     };
-
-    // 显示题目详情
+    
     const showDetails = (questionId) => {
         const allListItems = document.querySelectorAll('#resultsList li');
         allListItems.forEach(item => item.classList.remove('selected'));
         const currentListItem = document.querySelector(`#resultsList li[data-id='${questionId}']`);
-        
         if (currentListItem) {
             currentListItem.classList.add('selected');
             currentListItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-
         const question = questionBank.find(q => q.id === parseInt(questionId, 10));
         if (!question) return;
-
         let detailsHtml = `<div class="question-text">${question.question}</div>`;
         if (question.options && question.options.length > 0) {
             detailsHtml += '<ul class="options-list">';
             question.options.forEach(option => {
-                detailsHtml += `<li>${option}</li>`;
+                const optionLetter = option.trim().charAt(0);
+                if (question.answer.includes(optionLetter)) {
+                    detailsHtml += `<li class="correct-answer">${option}</li>`;
+                } else {
+                    detailsHtml += `<li>${option}</li>`;
+                }
             });
             detailsHtml += '</ul>';
         }
@@ -142,9 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 formattedAnswer = singleChoiceAnswer || answer;
                 break;
             case '多选题':
-                const multiChoiceAnswers = options
-                    .filter(opt => answer.includes(opt.trim().charAt(0)))
-                    .join('<br>');
+                const multiChoiceAnswers = options.filter(opt => answer.includes(opt.trim().charAt(0))).join('<br>');
                 formattedAnswer = multiChoiceAnswers || answer;
                 break;
             case '判断题':
@@ -164,8 +173,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const debouncedSearch = debounce(performSearch, 300);
     searchInput.addEventListener('input', debouncedSearch);
     
-    // 初始化页面提示信息，不主动加载任何题目
+    // ▼▼▼ 修改的初始化逻辑 ▼▼▼
+    // 初始化页面提示信息，不主动调用 performSearch()
     resultsList.innerHTML = '<li class="placeholder">请在上方输入关键词开始搜索...</li>';
     detailsContent.innerHTML = '<p class="placeholder">输入关键词后，结果将在此显示。</p>';
-
 });

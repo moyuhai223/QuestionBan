@@ -20,18 +20,36 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
-/* 标题与说明区域 */
+/* 标题区域 */
 .header {
     text-align: center;
-    margin-bottom: 20px;
     padding-bottom: 15px;
     border-bottom: 1px solid #eee;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: all 0.5s ease-in-out;
 }
 
-.instructions {
-    color: #666;
-    font-size: 0.9rem;
-    margin: 0;
+.header.hidden {
+    opacity: 0;
+    height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+    border: none;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-bottom: 5px;
+    font-size: 2em;
+}
+
+.subtitle {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #7f8c8d;
+    font-size: 1rem;
 }
 
 h2 {
@@ -41,22 +59,26 @@ h2 {
     font-size: 1.2em;
 }
 
-/* ▼▼▼ 新增的分类标签样式 ▼▼▼ */
+/* 分类与视图切换按钮容器 */
 .category-filter {
     display: flex;
     justify-content: center;
-    flex-wrap: wrap; /* 在移动端允许换行 */
+    flex-wrap: wrap;
     gap: 15px;
     margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    align-items: center;
 }
 
+/* 分类筛选按钮 */
 .filter-btn {
     padding: 8px 20px;
     font-size: 0.9rem;
     border: 1px solid #ccc;
     background-color: #f8f9fa;
     color: #555;
-    border-radius: 20px; /* 圆角胶囊形状 */
+    border-radius: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
     -webkit-appearance: none;
@@ -67,14 +89,34 @@ h2 {
     border-color: #adb5bd;
 }
 
-/* 选中状态的按钮样式 */
 .filter-btn.active {
     background-color: #007bff;
     color: white;
     border-color: #007bff;
     font-weight: bold;
 }
-/* ▲▲▲ 新增样式结束 ▲▲▲ */
+
+/* 视图切换按钮 (已修正居中) */
+.toggle-view-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    border: 1px solid #6c757d;
+    background-color: transparent;
+    color: #6c757d;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+}
+
+.toggle-view-btn:hover {
+    background-color: #6c757d;
+    color: white;
+}
 
 /* 搜索框区域 */
 .search-box {
@@ -195,6 +237,13 @@ h2 {
     background-color: #f8f9fa;
 }
 
+#detailsContent .options-list li.correct-answer {
+    background-color: #e8fadf;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+    font-weight: bold;
+}
+
 #detailsContent .answer {
     margin-top: 20px;
     padding: 12px 15px;
@@ -224,6 +273,9 @@ h2 {
     #resultsList {
         height: auto;
         max-height: 40vh;
+    }
+    h1 {
+        font-size: 1.5em;
     }
     h2 {
         font-size: 1.1em;

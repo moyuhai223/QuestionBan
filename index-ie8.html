@@ -1,22 +1,17 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=8" /> 
     <title>今天开“卷”</title>
-
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-
-    <link rel="stylesheet" href="style.css?v=1.2">
+    <link rel="stylesheet" href="style-ie8.css">
 </head>
 <body>
 
     <div class="container">
         <div class="header">
             <p class="instructions">
-                <strong>操作说明：</strong>键入（题目或选项）中的关键词 即可实时搜索，手机端建议使用浏览器的桌面版访问 <br> 字母不区分大小写,↑↓键可以选择题目.
+                <strong>操作说明：</strong>键入（题目或选项）中的关键词 即可实时搜索题目 <br> 字母不区分大小写,↑↓键可以选择题目.
             </p>
         </div>
 
@@ -24,7 +19,6 @@
             <button class="filter-btn active" data-type="单选题">单选题</button>
             <button class="filter-btn" data-type="多选题">多选题</button>
             <button class="filter-btn" data-type="判断题">判断题</button>
-            <button id="toggleViewBtn" class="toggle-view-btn" title="切换视图">💻</button>
         </div>
 
         <div class="search-box">
@@ -36,7 +30,7 @@
             <div class="results-panel">
                 <h2>搜索结果</h2>
                 <ul id="resultsList">
-                    </ul>
+                </ul>
             </div>
             <div class="details-panel">
                 <h2>题目详情与答案</h2>
@@ -44,11 +38,11 @@
                     <p class="placeholder">请选择题型开始浏览或键入关键词搜索。</p>
                 </div>
             </div>
-        </div>
+            <div style="clear:both;"></div> </div>
     </div>
 
-    <script src="database.js?v=1.1"></script>
-    <script src="script.js?v=1.1"></script>
+    <script src="database.js"></script>
+    <script src="script-ie8.js"></script>
 
 </body>
 </html>

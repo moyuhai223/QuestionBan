@@ -235,65 +235,14 @@ document.addEventListener('DOMContentLoaded', () => {
         detailsContent.innerHTML = detailsHtml;
     };
 
-    // --- 拍照搜题（OCR，纯本地：tess/ 下自带引擎与中文模型，零 CDN）---
+    // --- 拍照搜题（OCR）：调用服务端 RapidOCR；后端不存在/失败则提示手动搜索 ---
     const setOcrStatus = (msg) => {
         ocrStatus.textContent = msg || '';
         ocrStatus.style.display = msg ? 'block' : 'none';
     };
 
-    // 图像预处理：放大 + 灰度 + Otsu 自适应二值化，显著提升中文识别率
-    const preprocess = (file) => new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-            URL.revokeObjectURL(img.src);
-            const longSide = Math.max(img.naturalWidth, img.naturalHeight) || 1;
-            let scale = 1;
-            if (longSide < 1600) scale = Math.min(3, 1600 / longSide);   // 小图放大
-            else if (longSide > 2600) scale = 2600 / longSide;           // 巨图缩小
-            const w = Math.max(1, Math.round(img.naturalWidth * scale));
-            const h = Math.max(1, Math.round(img.naturalHeight * scale));
-            const cv = document.createElement('canvas');
-            cv.width = w; cv.height = h;
-            const ctx = cv.getContext('2d', { willReadFrequently: true });
-            ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(img, 0, 0, w, h);
-            const im = ctx.getImageData(0, 0, w, h);
-            const d = im.data, n = w * h;
-            const gray = new Uint8ClampedArray(n);
-            const hist = new Array(256).fill(0);
-            for (let i = 0, p = 0; p < n; i += 4, p++) {
-                const g = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) | 0;
-                gray[p] = g; hist[g]++;
-            }
-            // Otsu 最大类间方差求阈值
-            let sum = 0; for (let t = 0; t < 256; t++) sum += t * hist[t];
-            let sumB = 0, wB = 0, maxVar = -1, thr = 127;
-            for (let t = 0; t < 256; t++) {
-                wB += hist[t]; if (!wB) continue;
-                const wF = n - wB; if (!wF) break;
-                sumB += t * hist[t];
-                const mB = sumB / wB, mF = (sum - sumB) / wF;
-                const between = wB * wF * (mB - mF) * (mB - mF);
-                if (between > maxVar) { maxVar = between; thr = t; }
-            }
-            // 按背景明暗保证输出统一为“白底黑字”
-            let blackCount = 0; for (let p = 0; p < n; p++) if (gray[p] < thr) blackCount++;
-            const darkBackground = blackCount > n / 2;
-            for (let i = 0, p = 0; p < n; i += 4, p++) {
-                const isDark = gray[p] < thr;
-                const v = darkBackground ? (isDark ? 255 : 0) : (isDark ? 0 : 255);
-                d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
-            }
-            ctx.putImageData(im, 0, 0);
-            cv.toBlob((b) => b ? resolve(b) : reject(new Error('图像处理失败')), 'image/png');
-        };
-        img.onerror = () => reject(new Error('图片读取失败'));
-        img.src = URL.createObjectURL(file);
-    });
-
-    // 方案一：服务端高精度 OCR（本地 Umi-OCR 或服务器上的 RapidOCR/PaddleOCR）。
-    // 浏览器只请求同源的 /umi-ocr：本地由 ocr_server.py 代理，线上由 1Panel 反代到 127.0.0.1:1224。
-    // 后端不可达时此调用失败，自动回退到下面的内置 Tesseract。
+    // 服务端高精度 OCR（本地 Umi-OCR 或服务器上的 RapidOCR/PaddleOCR）。
+    // 浏览器只请求同源的 /umi-ocr：本地由 ocr_server.py 代理，线上由反代到 127.0.0.1:1224。
     const blobToBase64 = (blob) => new Promise((resolve, reject) => {
         const fr = new FileReader();
         fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
@@ -344,26 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error('OCR code ' + j.code);
     };
 
-    // 方案二：持久化 Tesseract worker（本地引擎 + 本地中文模型，离线兜底）
-    let _ocrWorker = null;
-    const tessUrl = (p) => new URL('tess/' + p, location.href).href;   // worker 内需绝对路径
-    const getWorker = async () => {
-        if (_ocrWorker) return _ocrWorker;
-        _ocrWorker = await Tesseract.createWorker('chi_sim', 1, {
-            workerPath: tessUrl('worker.min.js'),
-            corePath: tessUrl(''),
-            langPath: tessUrl(''),
-            gzip: true,
-            logger: (m) => {
-                if (m.status === 'recognizing text') {
-                    setOcrStatus('识别中… ' + Math.round((m.progress || 0) * 100) + '%');
-                }
-            }
-        });
-        await _ocrWorker.setParameters({ tessedit_pageseg_mode: '6' }); // 视作单一文本块
-        return _ocrWorker;
-    };
-
     if (ocrBtn && ocrFile) {
         ocrBtn.addEventListener('click', () => ocrFile.click());
 
@@ -371,48 +300,42 @@ document.addEventListener('DOMContentLoaded', () => {
             const file = event.target.files && event.target.files[0];
             ocrFile.value = '';                       // 允许重复选同一张图
             if (!file) return;
-            if (typeof Tesseract === 'undefined') {
-                setOcrStatus('⚠️ 识别引擎未能加载（tess/ 文件缺失？）。');
-                return;
-            }
             ocrBtn.disabled = true;
-            let text = '', engine = '';
+            const manualTip = '请直接在上方输入框手动输入题目关键词搜索。';
             try {
-                // 1) 优先服务端高精度 OCR（本地 Umi-OCR / 线上 RapidOCR）
+                let text;
                 try {
-                    setOcrStatus('正在调用服务端 OCR（高精度引擎）…');
+                    setOcrStatus('正在调用服务端 OCR 识别…');
                     text = await umiOcr(file);
-                    engine = '服务端OCR';
                 } catch (e) {
-                    // 2) 回退到内置 Tesseract（离线，含图像预处理）
-                    setOcrStatus('服务端 OCR 不可用，改用内置离线引擎…（首次约十几秒）');
-                    const pre = await preprocess(file);
-                    const worker = await getWorker();
-                    text = (await worker.recognize(pre)).data.text;
-                    engine = '内置Tesseract';
+                    // 后端不存在 / 调用失败：不再本地识别，提示手动搜索
+                    setOcrStatus('⚠️ OCR 服务不可用（' + (e && e.message ? e.message : e) + '）。' + manualTip);
+                    displayResults([]);
+                    return;
                 }
                 const shown = normText(text);
                 if (shown.length < 4) {
-                    setOcrStatus('［' + (engine || 'OCR') + '］没识别到足够文字，换一张更清晰、端正的图再试。');
+                    setOcrStatus('没识别到足够文字。' + manualTip);
                     displayResults([]);
                     return;
                 }
                 const matches = matchByText(text, 8);
+                if (!matches.length) {
+                    setOcrStatus('识别为「' + shown.slice(0, 24) + (shown.length > 24 ? '…' : '') + '」，题库未匹配到。' + manualTip);
+                    displayResults([]);
+                    return;
+                }
                 if (header) header.classList.add('hidden');
-                setOcrStatus('［' + engine + '］识别：' + shown.slice(0, 46) + (shown.length > 46 ? '…' : '') +
+                setOcrStatus('［服务端OCR］识别：' + shown.slice(0, 46) + (shown.length > 46 ? '…' : '') +
                     '　—— 已跳到答案，绿色为正确项。');
                 displayResults(matches);
-                if (matches.length) {
-                    // 识别成功后直接滚到答案：优先对准绿色正确项 / 答案框，手机上免去手动下滑
-                    requestAnimationFrame(() => {
-                        const target = document.querySelector('#detailsContent .correct-answer')
-                            || document.querySelector('#detailsContent .answer')
-                            || document.querySelector('.details-panel');
-                        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    });
-                }
-            } catch (err) {
-                setOcrStatus('识别失败：' + (err && err.message ? err.message : err));
+                // 识别成功后直接滚到答案：优先对准绿色正确项 / 答案框，手机上免去手动下滑
+                requestAnimationFrame(() => {
+                    const target = document.querySelector('#detailsContent .correct-answer')
+                        || document.querySelector('#detailsContent .answer')
+                        || document.querySelector('.details-panel');
+                    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
             } finally {
                 ocrBtn.disabled = false;
             }

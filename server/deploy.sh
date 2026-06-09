@@ -26,7 +26,7 @@ STATIC_ONLY=0
 
 echo "==> [1/4] 部署静态站到 $DEST"
 mkdir -p "$DEST"
-for item in index.html script.js style.css database.js tess converter.html export.html import.html ie8 README.md; do
+for item in index.html script.js style.css database.js converter.html export.html import.html ie8 README.md; do
     if [ -e "$SRC/$item" ]; then cp -a "$SRC/$item" "$DEST/"; fi
 done
 owner="$(stat -c '%U:%G' "$DEST" 2>/dev/null || echo root:root)"

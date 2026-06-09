@@ -28,6 +28,35 @@ ENGINE = RapidOCR()
 print("RapidOCR ready, listening on %s:%d" % (HOST, PORT), flush=True)
 
 
+def reading_order(result):
+    """把 OCR 文本框按阅读顺序（上→下；同一行内左→右）排好，返回逐行文字列表。
+    复杂版面时 RapidOCR 返回的顺序未必是阅读顺序，而下游用顺序敏感的匹配，故重排。"""
+    items = []
+    for it in result:
+        box, txt = it[0], it[1]
+        ys = [p[1] for p in box]
+        xs = [p[0] for p in box]
+        items.append({"cy": sum(ys) / len(ys), "left": min(xs),
+                      "h": max(ys) - min(ys), "txt": txt})
+    if not items:
+        return []
+    avg_h = (sum(it["h"] for it in items) / len(items)) or 1.0
+    thr = avg_h * 0.6                       # 行间阈值：cy 相差小于它视为同一行
+    items.sort(key=lambda it: it["cy"])
+    rows = []
+    for it in items:
+        if rows and abs(it["cy"] - rows[-1]["cy"]) <= thr:
+            rows[-1]["items"].append(it)
+            rows[-1]["cy"] = sum(x["cy"] for x in rows[-1]["items"]) / len(rows[-1]["items"])
+        else:
+            rows.append({"cy": it["cy"], "items": [it]})
+    lines = []
+    for row in rows:
+        row["items"].sort(key=lambda it: it["left"])
+        lines.append(" ".join(it["txt"] for it in row["items"]))
+    return lines
+
+
 class Handler(BaseHTTPRequestHandler):
     def _json(self, http_code, obj):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
@@ -61,7 +90,7 @@ class Handler(BaseHTTPRequestHandler):
             if not result:
                 self._json(200, {"code": 101, "data": ""})
                 return
-            text = "\n".join(line[1] for line in result)
+            text = "\n".join(reading_order(result))   # 按阅读顺序重排再拼接
             self._json(200, {"code": 100, "data": text})
         except Exception as exc:
             traceback.print_exc()

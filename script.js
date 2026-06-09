@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return (2 * inter) / (a.size + b.size);
     };
 
-    // 最长公共子串长度（连续命中的字数），顺序敏感、比 bigram 精确得多
+    // 最长公共子串长度（连续命中的字数），顺序敏感、精度高，但对中间错字敏感
     const lcsLen = (a, b) => {
         const m = a.length, n = b.length;
         if (!m || !n) return 0;
@@ -35,6 +35,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return best;
     };
+    // 三元组（连续3字）集合 + 交集计数：不计位置，OCR 散落错字只丢局部，鲁棒性强
+    const trigrams = (s) => {
+        const set = new Set();
+        if (s.length < 3) { if (s) set.add(s); return set; }
+        for (let i = 0; i + 3 <= s.length; i++) set.add(s.slice(i, i + 3));
+        return set;
+    };
+    const interCount = (a, b) => { let c = 0; for (const x of a) if (b.has(x)) c++; return c; };
 
     // --- 预处理数据 ---
     questionBank.forEach(q => {
@@ -43,32 +51,33 @@ document.addEventListener('DOMContentLoaded', () => {
         q._normStem = normText(q.question);            // 仅题干（主匹配键，排除选项干扰）
         q._norm = normText(q.searchableText);          // 题干+选项（并列时的次判据）
         q._bg = bigrams(q._norm);
+        q._stg = trigrams(q._normStem);                // 题干三元组集（抗错字匹配用）
     });
 
-    // 用识别出的文字在【当前选中题型】里精确定位题目。
-    // 主判据 = 与“题干”的最长连续公共子串：谁的题干包含 OCR 里最长的一段原文，就是它。
-    // 选项、题号、单选圈(○)等干扰: ○等符号已被 normText 滤除；题号前缀在此剥离；
-    // 选项不参与主判据(只在题干并列时用题干+选项的连续命中来区分)。
+    // 用识别出的文字在【当前选中题型】里精确定位题目。综合评分：
+    //   tgHit  = 题干三元组在 OCR 里命中数（主判据，抗散落错字、不计位置）
+    //   lcs    = 与题干的最长连续命中（加权提升精度，区分“仅共享开头套话”的沾边题）
+    // 题号/选项/单选圈(○)等干扰：○等符号已被 normText 滤除；题号前缀在此剥离；
+    // 用“题干自身三元组的命中比例”度量，分母是题干，不受截图里选项/界面文字稀释。
     const matchByText = (ocrText, topN = 8) => {
         const raw = (ocrText || '').replace(/^\s*\d{1,3}\s*[.．、]\s*/, '');  // 去掉考试题号"46."
         const q = normText(raw).slice(0, 240);
         if (q.length < 2) return [];
-        const a = bigrams(q);
-        const minHit = Math.min(6, Math.max(3, Math.floor(q.length * 0.5)));
+        const qbg = bigrams(q);
+        const qtg = trigrams(q);
         const scored = questionBank
             .filter(x => x.type === currentFilterType)   // 只在当前题型库内匹配
-            .map(x => ({
-                x,
-                lcs: lcsLen(q, x._normStem),             // 主判据：与题干的最长连续命中
-                lcsAll: lcsLen(q, x._norm),              // 次判据：与题干+选项的最长连续命中
-                d: dice(a, x._bg)
-            }))
-            .filter(s => s.lcs >= minHit)                // 题干连续命中太短的直接排除
-            .sort((p, n) => (n.lcs - p.lcs) || (n.lcsAll - p.lcsAll) || (n.d - p.d));
+            .map(x => {
+                const tgHit = interCount(x._stg, qtg);   // 题干三元组命中数
+                const lcs = lcsLen(q, x._normStem);      // 连续命中字数
+                return { x, tgHit, lcs, score: tgHit + 0.3 * lcs, d: dice(qbg, x._bg) };
+            })
+            .filter(s => s.score >= 4)                   // 几乎不相关的直接排除
+            .sort((p, n) => (n.score - p.score) || (n.lcs - p.lcs) || (n.d - p.d));
         if (!scored.length) return [];
-        // 有明显赢家时收紧：只保留与最佳命中接近的，丢掉仅共享开头套话的“沾边”题
-        const cut = Math.max(minHit, scored[0].lcs * 0.5);
-        return scored.filter(s => s.lcs >= cut).slice(0, topN).map(s => s.x);
+        // 有明显赢家时收紧：只留与最佳分接近的，丢掉仅共享开头套话的“沾边”题
+        const cut = scored[0].score * 0.5;
+        return scored.filter(s => s.score >= cut).slice(0, topN).map(s => s.x);
     };
 
     // --- 获取页面元素 ---

@@ -35,16 +35,21 @@
 * **精确匹配**：用识别文字与**题干**做最长连续公共子串匹配，自动剔除题号、单选圈、翻页按钮等界面干扰词，直接定位到唯一题目；识别成功后自动滚动到答案区（绿色为正确项）。
 * **省流**：上传前把高像素照片自适应压到长边 ≤1600 的 JPEG（体积封顶约 380KB），不传原图。
 
-## 🖥️ 服务器部署（含高精度 OCR 后端）
+## 🖥️ 服务器部署 / 一键更新（直接从本仓库拉取）
+
+**安装与更新同一条命令**（幂等，从 GitHub 拉最新代码 → 部署静态站 → 安装/刷新 RapidOCR 后端）：
 
 ```bash
-# 把整个项目上传到服务器后：
-cd QuestionBan/server
-sudo bash deploy.sh                  # 静态站 + RapidOCR 后端(venv + systemd, 仅监听 127.0.0.1:1224)
-# sudo bash deploy.sh --static-only  # 只部署静态站(用浏览器内置离线 Tesseract)
+curl -fsSL https://raw.githubusercontent.com/moyuhai223/QuestionBan/main/server/update.sh | sudo bash
 ```
 
-随后在反向代理（1Panel / Nginx）里把 `/umi-ocr` 转发到 `http://127.0.0.1:1224`，浏览器即同源调用高精度 OCR。本地调试也可直接 `python server/rapidocr_server.py`，或用根目录 `ocr_server.py`（把 `/umi-ocr` 同源代理到本机 Umi-OCR）。
+* 只更新前端：在末尾加 `--static-only`（`... | sudo bash -s -- --static-only`）。
+* 脚本会把代码克隆到 `/opt/questionban-src`，静态文件部署到网站目录，OCR 后端装在 `/opt/questionban-ocr`（venv + systemd，仅监听 `127.0.0.1:1224`）。
+* 网站目录默认 `/opt/1panel/www/sites/e5.zh.ci/index`，按需改 `server/update.sh` 顶部变量。
+
+**仅首次**需在反向代理（1Panel / Nginx）里把 `/umi-ocr` 转发到 `http://127.0.0.1:1224`，之后浏览器即同源调用高精度 OCR。
+
+> 也可不用 git、直接部署本地文件夹：`cd server && sudo bash deploy.sh`。本地调试可 `python server/rapidocr_server.py`，或用根目录 `ocr_server.py`（把 `/umi-ocr` 同源代理到本机 Umi-OCR）。
 
 > 题库说明：`database.js` 为 **2026 安全生产月安全知识竞赛题库**（共 882 题：单选 599 / 多选 87 / 判断 196），由 PDF 解析生成。
 

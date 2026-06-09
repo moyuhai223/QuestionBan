@@ -45,6 +45,7 @@ mkdir -p "$DEST"
 for item in index.html script.js style.css database.js converter.html export.html import.html ie8 README.md; do
     if [ -e "$SRC/$item" ]; then cp -a "$SRC/$item" "$DEST/"; fi
 done
+rm -rf "$DEST/tess"        # 旧版离线模型目录已弃用，清掉省空间
 owner="$(stat -c '%U:%G' "$DEST" 2>/dev/null || echo root:root)"
 chown -R "$owner" "$DEST" 2>/dev/null || true
 chmod -R a+rX "$DEST" 2>/dev/null || true

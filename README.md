@@ -4,6 +4,8 @@
 
 一个纯前端、功能全面、交互体验流畅、响应式设计的安全生产知识题库Web应用。旨在提供一个零依赖、易部署、方便快捷的在线学习和检索工具。
 
+> 🌐 **在线访问**：https://moyuhai223.github.io/QuestionBan/ （GitHub Pages，纯前端 + 浏览器内置离线 OCR，无需后端）
+
 ## ✨ 功能亮点 (Feature Highlights)
 
 我们为这个小应用添加了许多现代化和人性化的功能：
@@ -40,16 +42,17 @@
 **安装与更新同一条命令**（幂等，从 GitHub 拉最新代码 → 部署静态站 → 安装/刷新 RapidOCR 后端）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/moyuhai223/QuestionBan/main/server/update.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/moyuhai223/QuestionBan/main/server/update.sh | bash
 ```
 
-* 只更新前端：在末尾加 `--static-only`（`... | sudo bash -s -- --static-only`）。
+* 需以 root 运行（非 root 时在 `bash` 前加 `sudo`）。
+* 只更新前端：在末尾加 `--static-only`（`... | bash -s -- --static-only`）。
 * 脚本会把代码克隆到 `/opt/questionban-src`，静态文件部署到网站目录，OCR 后端装在 `/opt/questionban-ocr`（venv + systemd，仅监听 `127.0.0.1:1224`）。
 * 网站目录默认 `/opt/1panel/www/sites/e5.zh.ci/index`，按需改 `server/update.sh` 顶部变量。
 
 **仅首次**需在反向代理（1Panel / Nginx）里把 `/umi-ocr` 转发到 `http://127.0.0.1:1224`，之后浏览器即同源调用高精度 OCR。
 
-> 也可不用 git、直接部署本地文件夹：`cd server && sudo bash deploy.sh`。本地调试可 `python server/rapidocr_server.py`，或用根目录 `ocr_server.py`（把 `/umi-ocr` 同源代理到本机 Umi-OCR）。
+> 也可不用 git、直接部署本地文件夹：`cd server && bash deploy.sh`。本地调试可 `python server/rapidocr_server.py`，或用根目录 `ocr_server.py`（把 `/umi-ocr` 同源代理到本机 Umi-OCR）。
 
 > 题库说明：`database.js` 为 **2026 安全生产月安全知识竞赛题库**（共 882 题：单选 599 / 多选 87 / 判断 196），由 PDF 解析生成。
 

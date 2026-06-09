@@ -5,9 +5,9 @@
 #   2) 安装 RapidOCR 高精度后端（venv + systemd，仅监听 127.0.0.1:1224）
 #   3) 打印 1Panel 反向代理 / 上传体积的设置指引
 #
-# 用法（在服务器上、QuestionBan/server 目录内）：
-#   sudo bash deploy.sh              # 静态站 + RapidOCR 后端
-#   sudo bash deploy.sh --static-only   # 只部署静态站
+# 用法（在服务器上、QuestionBan/server 目录内，需以 root 运行）：
+#   bash deploy.sh              # 静态站 + RapidOCR 后端
+#   bash deploy.sh --static-only   # 只部署静态站
 # ============================================================================
 set -euo pipefail
 
@@ -21,7 +21,7 @@ SRC="$(dirname "$SCRIPT_DIR")"                # QuestionBan 根目录（含 inde
 STATIC_ONLY=0
 [ "${1:-}" = "--static-only" ] && STATIC_ONLY=1
 
-[ "$(id -u)" = "0" ] || { echo "请用 root 运行：sudo bash $0"; exit 1; }
+[ "$(id -u)" = "0" ] || { echo "需要 root 权限：请切到 root 后运行（或在命令前加 sudo）"; exit 1; }
 [ -f "$SRC/index.html" ] || { echo "找不到 $SRC/index.html —— 请在 QuestionBan/server 目录里运行本脚本"; exit 1; }
 
 echo "==> [1/4] 部署静态站到 $DEST"

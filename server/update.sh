@@ -2,12 +2,12 @@
 # ============================================================================
 # QuestionBan 一键安装 / 更新（直接从 GitHub 仓库拉取，幂等，可反复运行）
 #
-# 远程一条命令（首次安装 & 以后每次更新都用它）：
-#   curl -fsSL https://raw.githubusercontent.com/moyuhai223/QuestionBan/main/server/update.sh | sudo bash
+# 远程一条命令（首次安装 & 以后每次更新都用它，需以 root 运行）：
+#   curl -fsSL https://raw.githubusercontent.com/moyuhai223/QuestionBan/main/server/update.sh | bash
 #
 # 已克隆到服务器后也可：
-#   sudo bash /opt/questionban-src/server/update.sh            # 静态站 + OCR 后端
-#   sudo bash /opt/questionban-src/server/update.sh --static-only
+#   bash /opt/questionban-src/server/update.sh            # 静态站 + OCR 后端
+#   bash /opt/questionban-src/server/update.sh --static-only
 # ============================================================================
 set -euo pipefail
 
@@ -21,7 +21,7 @@ PORT="${PORT:-1224}"
 STATIC_ONLY=0
 [ "${1:-}" = "--static-only" ] && STATIC_ONLY=1
 
-[ "$(id -u)" = "0" ] || { echo "请用 root 运行：sudo bash $0"; exit 1; }
+[ "$(id -u)" = "0" ] || { echo "需要 root 权限：请切到 root 后运行（或在命令前加 sudo）"; exit 1; }
 command -v git >/dev/null 2>&1 || {
     (apt-get update -y && apt-get install -y git) >/dev/null 2>&1 \
         || yum install -y git >/dev/null 2>&1 || dnf install -y git >/dev/null 2>&1 \
@@ -107,7 +107,7 @@ cat <<TIP
 
 ────────────────────────────────────────────────────────────
 更新完成。以后每次更新，重跑同一条命令即可：
-  curl -fsSL https://raw.githubusercontent.com/moyuhai223/QuestionBan/$BRANCH/server/update.sh | sudo bash
+  curl -fsSL https://raw.githubusercontent.com/moyuhai223/QuestionBan/$BRANCH/server/update.sh | bash
 
 仅首次需在 1Panel 里配一次反向代理：/umi-ocr  ->  http://127.0.0.1:$PORT
 ────────────────────────────────────────────────────────────

@@ -1,0 +1,12 @@
+# OS / 编辑器
+.DS_Store
+Thumbs.db
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+
+# 服务端运行时（由 deploy.sh 在服务器上生成，不入库）
+server/venv/
+*.log

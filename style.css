@@ -126,6 +126,7 @@ h2 {
 
 #searchInput {
     flex-grow: 1;
+    min-width: 0;            /* 允许在窄屏收缩，避免把右侧按钮挤出屏幕 */
     padding: 12px 15px;
     font-size: 1rem;
     border: 1px solid #ccc;
@@ -147,12 +148,49 @@ h2 {
     background-color: #95a5a6;
     color: white;
     cursor: pointer;
-    border-radius: 0 4px 4px 0;
+    border-radius: 0;
     transition: background-color 0.3s;
+    white-space: nowrap;
 }
 
 #clearButton:hover {
     background-color: #7f8c8d;
+}
+
+/* 拍照搜题按钮（仅图标） */
+#ocrBtn {
+    flex: 0 0 auto;
+    padding: 12px 16px;
+    font-size: 1.2rem;
+    line-height: 1;
+    border: none;
+    background-color: #17a2b8;
+    color: white;
+    cursor: pointer;
+    border-radius: 0 4px 4px 0;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+}
+
+#ocrBtn:hover {
+    background-color: #138496;
+}
+
+#ocrBtn:disabled {
+    background-color: #b8c4c9;
+    cursor: progress;
+}
+
+/* OCR 状态条 */
+.ocr-status {
+    margin: -10px 0 18px;
+    padding: 10px 14px;
+    background-color: #eef7fb;
+    border: 1px solid #bce0ec;
+    border-radius: 4px;
+    color: #1c6b80;
+    font-size: 0.9rem;
+    word-break: break-all;
 }
 
 /* 主要内容区域布局 */
@@ -272,7 +310,7 @@ h2 {
     }
     #resultsList {
         height: auto;
-        max-height: 40vh;
+        max-height: 28vh;
     }
     h1 {
         font-size: 1.5em;

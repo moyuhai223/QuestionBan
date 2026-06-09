@@ -9,7 +9,7 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
-    <link rel="stylesheet" href="style.css?v=1.2">
+    <link rel="stylesheet" href="style.css?v=1.4">
 </head>
 <body>
 
@@ -30,7 +30,10 @@
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="在当前分类下搜索...">
             <button id="clearButton">清空</button>
+            <button id="ocrBtn" title="拍照搜题 / 截图识别题目">📷</button>
         </div>
+        <input type="file" id="ocrFile" accept="image/*" capture="environment" hidden>
+        <div id="ocrStatus" class="ocr-status" style="display:none"></div>
 
         <div class="content-area">
             <div class="results-panel">
@@ -47,8 +50,9 @@
         </div>
     </div>
 
-    <script src="database.js?v=1.1"></script>
-    <script src="script.js?v=1.1"></script>
+    <script src="tess/tesseract.min.js"></script>
+    <script src="database.js?v=2.1"></script>
+    <script src="script.js?v=3.0"></script>
 
 </body>
 </html>

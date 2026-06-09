@@ -164,17 +164,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 核心功能函数 ---
     const performSearch = () => {
-        const keyword = searchInput.value.trim().toLowerCase();
-        
+        const raw = searchInput.value.trim().toLowerCase();
+
         // 如果没有关键词，则重置界面并停止执行
-        if (!keyword) {
+        if (!raw) {
             resultsList.innerHTML = '<li class="placeholder">请在上方输入关键词开始搜索...</li>';
             detailsContent.innerHTML = '<p class="placeholder">输入关键词后，结果将在此显示。</p>';
             return;
         }
 
+        // 按空格拆成多个关键词，要求全部命中（AND）；单个词时即普通子串搜索
+        const tokens = raw.split(/\s+/).filter(Boolean);
         const questionsOfType = questionBank.filter(q => q.type === currentFilterType);
-        const filteredResults = questionsOfType.filter(q => q.searchableText.includes(keyword));
+        const filteredResults = questionsOfType.filter(q =>
+            tokens.every(t => q.searchableText.includes(t)));
         displayResults(filteredResults);
     };
 

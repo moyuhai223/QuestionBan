@@ -477,14 +477,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (m === 'practice') {
             searchView.style.display = 'none';
             practiceView.style.display = 'block';
-            modeToggleBtn.innerHTML = '🔍 查询';
+            modeToggleBtn.innerHTML = '🔍';
+            modeToggleBtn.title = '返回查询';
             modeToggleBtn.classList.add('active');
             if (header) header.classList.add('hidden');
             startPractice();
         } else {
             practiceView.style.display = 'none';
             searchView.style.display = '';
-            modeToggleBtn.innerHTML = '📝 练习';
+            modeToggleBtn.innerHTML = '📝';
+            modeToggleBtn.title = '练习 / 查询';
             modeToggleBtn.classList.remove('active');
         }
     };

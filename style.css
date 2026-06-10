@@ -323,8 +323,9 @@ h2 {
 
 /* ===== 练习模式 ===== */
 .mode-toggle-btn {
-    padding: 8px 16px;
-    font-size: 0.9rem;
+    padding: 8px 14px;
+    font-size: 1.1rem;
+    line-height: 1;
     border: 1px solid #28a745;
     background-color: #fff;
     color: #28a745;

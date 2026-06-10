@@ -403,6 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pRestart = document.getElementById('practiceRestart');
     const pClearWrong = document.getElementById('practiceClearWrong');
     const pShuffle = document.getElementById('practiceShuffle');
+    const pOptShuffle = document.getElementById('practiceOptShuffle');
     const pWrongOnly = document.getElementById('practiceWrongOnly');
 
     const saveWrong = () => { try { localStorage.setItem(WRONG_KEY, JSON.stringify([...wrongSet])); } catch (e) {} };
@@ -410,10 +411,29 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = arr.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0;[arr[i], arr[j]] = [arr[j], arr[i]]; }
         return arr;
     };
-    // 题目的可选项：判断题给 √/× 两个；其余取选项首字母
-    const optLetters = (q) => q.type === '判断题'
-        ? [{ letter: '√', text: '正确（√）' }, { letter: '×', text: '错误（×）' }]
-        : q.options.map(o => ({ letter: o.trim().charAt(0), text: o }));
+    // 每题的展示视图：opts=[{letter,text}]、correct=正确字母集合。
+    // 判断题固定 √/×；开「选项乱序」时把选项内容打乱、重新编号 A/B/C…、重算正确字母。
+    // 视图按题 id 缓存，保证同一题前后多次渲染（含锁定回看）顺序一致。
+    const viewMap = {};
+    const buildView = (q) => {
+        if (q.type === '判断题') {
+            return { opts: [{ letter: '√', text: '正确（√）' }, { letter: '×', text: '错误（×）' }], correct: new Set([q.answer]) };
+        }
+        const ansSet = new Set(q.answer.split(''));
+        if (!pOptShuffle.checked) {
+            return { opts: q.options.map(o => ({ letter: o.trim().charAt(0), text: o })), correct: ansSet };
+        }
+        const items = q.options.map(o => ({ orig: o.trim().charAt(0), text: o.replace(/^\s*[A-Fa-f]\s*[.．、:：]?\s*/, '') }));
+        const order = shuffleArr(items.map((_, i) => i));
+        const opts = [], correct = new Set();
+        order.forEach((idx, pos) => {
+            const L = String.fromCharCode(65 + pos);
+            opts.push({ letter: L, text: L + '. ' + items[idx].text });
+            if (ansSet.has(items[idx].orig)) correct.add(L);
+        });
+        return { opts, correct };
+    };
+    const getView = (q) => (viewMap[q.id] || (viewMap[q.id] = buildView(q)));
 
     const startPractice = () => {
         let pool = questionBank.filter(q => q.type === currentFilterType && q.answer);
@@ -421,6 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
         practiceList = pShuffle.checked ? shuffleArr(pool.slice()) : pool.slice();
         practiceIndex = 0;
         for (const k in practiceState) delete practiceState[k];
+        for (const k in viewMap) delete viewMap[k];     // 重新洗牌选项
         sess = { answered: 0, correct: 0 };
         renderPractice();
     };
@@ -430,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pFeedback.textContent = '✓ 回答正确';
             pFeedback.className = 'practice-feedback ok';
         } else {
-            pFeedback.textContent = '✗ 回答错误，正确答案：' + q.answer;
+            pFeedback.textContent = '✗ 回答错误，正确答案：' + [...getView(q).correct].sort().join('');
             pFeedback.className = 'practice-feedback bad';
         }
     };
@@ -458,20 +479,20 @@ document.addEventListener('DOMContentLoaded', () => {
         pQ.textContent = q.question;   // 题干原样显示（位置见上方进度条，避免与题干自带题号重复）
         const isMulti = q.type === '多选题';
         const st = practiceState[q.id];                     // 已答状态(锁定)或 undefined
-        optLetters(q).forEach(o => {
+        const view = getView(q);
+        view.opts.forEach(o => {
             const div = document.createElement('div');
             div.dataset.letter = o.letter;
             div.textContent = o.text;
             div.className = 'p-opt';
             if (st) {
-                const inAns = q.answer.includes(o.letter);
                 const inPick = Array.isArray(st.picked) ? st.picked.includes(o.letter) : st.picked === o.letter;
-                if (inAns) div.classList.add('p-correct');
+                if (view.correct.has(o.letter)) div.classList.add('p-correct');
                 else if (inPick) div.classList.add('p-wrong');
             } else {
                 div.addEventListener('click', () => {
                     if (isMulti) div.classList.toggle('p-sel');
-                    else recordAndLock(q, o.letter, o.letter === q.answer);
+                    else recordAndLock(q, o.letter, view.correct.has(o.letter));
                 });
             }
             pOptions.appendChild(div);
@@ -494,8 +515,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!q || practiceState[q.id]) return;
         const picked = [...pOptions.querySelectorAll('.p-sel')].map(d => d.dataset.letter).sort();
         if (!picked.length) { pFeedback.textContent = '请至少选择一个选项'; pFeedback.className = 'practice-feedback bad'; return; }
-        const ans = q.answer.split('').sort();
-        const correct = picked.length === ans.length && picked.every((l, i) => l === ans[i]);
+        const corr = [...getView(q).correct].sort();
+        const correct = picked.length === corr.length && picked.every((l, i) => l === corr[i]);
         recordAndLock(q, picked, correct);
     };
 
@@ -525,6 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pSubmit.addEventListener('click', submitMulti);
         pRestart.addEventListener('click', startPractice);
         pShuffle.addEventListener('change', startPractice);
+        pOptShuffle.addEventListener('change', startPractice);
         pWrongOnly.addEventListener('change', startPractice);
         pClearWrong.addEventListener('click', () => {
             if (!wrongSet.size) { pFeedback.textContent = '错题本已是空的'; pFeedback.className = 'practice-feedback'; return; }

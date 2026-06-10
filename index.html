@@ -9,7 +9,7 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
-    <link rel="stylesheet" href="style.css?v=1.4">
+    <link rel="stylesheet" href="style.css?v=1.5">
 </head>
 <body>
 
@@ -24,34 +24,59 @@
             <button class="filter-btn active" data-type="单选题">单选题</button>
             <button class="filter-btn" data-type="多选题">多选题</button>
             <button class="filter-btn" data-type="判断题">判断题</button>
+            <button id="modeToggleBtn" class="mode-toggle-btn" title="练习 / 查询">📝 练习</button>
             <button id="toggleViewBtn" class="toggle-view-btn" title="切换视图">💻</button>
         </div>
 
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="搜索…多个关键词用空格分隔">
-            <button id="clearButton">清空</button>
-            <button id="ocrBtn" title="拍照搜题 / 截图识别题目">📷</button>
-        </div>
-        <input type="file" id="ocrFile" accept="image/*" capture="environment" hidden>
-        <div id="ocrStatus" class="ocr-status" style="display:none"></div>
-
-        <div class="content-area">
-            <div class="results-panel">
-                <h2>搜索结果</h2>
-                <ul id="resultsList">
-                    </ul>
+        <div id="searchView">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="搜索…多个关键词用空格分隔">
+                <button id="clearButton">清空</button>
+                <button id="ocrBtn" title="拍照搜题 / 截图识别题目">📷</button>
             </div>
-            <div class="details-panel">
-                <h2>题目详情与答案</h2>
-                <div id="detailsContent">
-                    <p class="placeholder">请选择题型开始浏览或键入关键词搜索。</p>
+            <input type="file" id="ocrFile" accept="image/*" capture="environment" hidden>
+            <div id="ocrStatus" class="ocr-status" style="display:none"></div>
+
+            <div class="content-area">
+                <div class="results-panel">
+                    <h2>搜索结果</h2>
+                    <ul id="resultsList">
+                        </ul>
                 </div>
+                <div class="details-panel">
+                    <h2>题目详情与答案</h2>
+                    <div id="detailsContent">
+                        <p class="placeholder">请选择题型开始浏览或键入关键词搜索。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="practiceView" class="practice-view" style="display:none">
+            <div class="practice-bar">
+                <span id="practiceProgress" class="practice-progress"></span>
+                <div class="practice-toggles">
+                    <label><input type="checkbox" id="practiceShuffle"> 随机</label>
+                    <label><input type="checkbox" id="practiceWrongOnly"> 只练错题</label>
+                    <button id="practiceRestart" class="p-btn">重新开始</button>
+                    <button id="practiceClearWrong" class="p-btn">清空错题本</button>
+                </div>
+            </div>
+            <div id="practiceCard" class="practice-card">
+                <div id="practiceQ" class="practice-q"></div>
+                <div id="practiceOptions" class="practice-options"></div>
+                <button id="practiceSubmit" class="practice-submit" style="display:none">提交答案</button>
+                <div id="practiceFeedback" class="practice-feedback"></div>
+            </div>
+            <div class="practice-nav">
+                <button id="practicePrev" class="p-nav-btn">← 上一题</button>
+                <button id="practiceNext" class="p-nav-btn">下一题 →</button>
             </div>
         </div>
     </div>
 
     <script src="database.js?v=2.1"></script>
-    <script src="script.js?v=3.3"></script>
+    <script src="script.js?v=3.4"></script>
 
 </body>
 </html>

@@ -96,6 +96,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 状态变量 ---
     let currentFilterType = '单选题';
     let isDesktopView = false;
+    let appMode = 'search';                       // 'search' | 'practice'
+    // 练习模式状态
+    let practiceList = [], practiceIndex = 0;
+    const practiceState = {};                     // id -> { picked, correct }
+    let sess = { answered: 0, correct: 0 };
+    const WRONG_KEY = 'qb_wrong_v1';
+    let wrongSet = new Set();
+    try { wrongSet = new Set(JSON.parse(localStorage.getItem(WRONG_KEY) || '[]')); } catch (e) {}
 
     // --- 事件监听 ---
     toggleViewBtn.addEventListener('click', () => {
@@ -119,8 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
             filterButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
             currentFilterType = button.dataset.type;
-            // 切换分类时，如果搜索框有内容，则立即执行搜索，否则清空
-            performSearch();
+            if (appMode === 'practice') startPractice();   // 练习模式下切题型=换练习范围
+            else performSearch();                           // 查询模式下执行搜索
         });
     });
 
@@ -351,6 +359,149 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 ocrBtn.disabled = false;
             }
+        });
+    }
+
+    // ===== 练习模式（即时判分）=====
+    const searchView = document.getElementById('searchView');
+    const practiceView = document.getElementById('practiceView');
+    const modeToggleBtn = document.getElementById('modeToggleBtn');
+    const pProgress = document.getElementById('practiceProgress');
+    const pQ = document.getElementById('practiceQ');
+    const pOptions = document.getElementById('practiceOptions');
+    const pSubmit = document.getElementById('practiceSubmit');
+    const pFeedback = document.getElementById('practiceFeedback');
+    const pPrev = document.getElementById('practicePrev');
+    const pNext = document.getElementById('practiceNext');
+    const pRestart = document.getElementById('practiceRestart');
+    const pClearWrong = document.getElementById('practiceClearWrong');
+    const pShuffle = document.getElementById('practiceShuffle');
+    const pWrongOnly = document.getElementById('practiceWrongOnly');
+
+    const saveWrong = () => { try { localStorage.setItem(WRONG_KEY, JSON.stringify([...wrongSet])); } catch (e) {} };
+    const shuffleArr = (arr) => {
+        for (let i = arr.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0;[arr[i], arr[j]] = [arr[j], arr[i]]; }
+        return arr;
+    };
+    // 题目的可选项：判断题给 √/× 两个；其余取选项首字母
+    const optLetters = (q) => q.type === '判断题'
+        ? [{ letter: '√', text: '正确（√）' }, { letter: '×', text: '错误（×）' }]
+        : q.options.map(o => ({ letter: o.trim().charAt(0), text: o }));
+
+    const startPractice = () => {
+        let pool = questionBank.filter(q => q.type === currentFilterType && q.answer);
+        if (pWrongOnly.checked) pool = pool.filter(q => wrongSet.has(q.id));
+        practiceList = pShuffle.checked ? shuffleArr(pool.slice()) : pool.slice();
+        practiceIndex = 0;
+        for (const k in practiceState) delete practiceState[k];
+        sess = { answered: 0, correct: 0 };
+        renderPractice();
+    };
+
+    const showFeedback = (q, st) => {
+        if (st.correct) {
+            pFeedback.textContent = '✓ 回答正确';
+            pFeedback.className = 'practice-feedback ok';
+        } else {
+            pFeedback.textContent = '✗ 回答错误，正确答案：' + q.answer;
+            pFeedback.className = 'practice-feedback bad';
+        }
+    };
+
+    const renderPractice = () => {
+        const total = practiceList.length;
+        pSubmit.style.display = 'none';
+        pFeedback.textContent = ''; pFeedback.className = 'practice-feedback';
+        pOptions.innerHTML = '';
+        if (!total) {
+            pProgress.textContent = '';
+            pQ.textContent = pWrongOnly.checked
+                ? '错题本里暂时没有「' + currentFilterType + '」，先去做题或取消「只练错题」。'
+                : '该题型暂无题目。';
+            pPrev.disabled = pNext.disabled = true;
+            return;
+        }
+        const rate = sess.answered ? Math.round(sess.correct / sess.answered * 100) : 0;
+        pProgress.textContent = `第 ${practiceIndex + 1} / ${total} 题　已答 ${sess.answered}　正确 ${sess.correct}` +
+            (sess.answered ? `（${rate}%）` : '');
+        pPrev.disabled = practiceIndex === 0;
+        pNext.disabled = practiceIndex === total - 1;
+
+        const q = practiceList[practiceIndex];
+        pQ.textContent = `${practiceIndex + 1}. ${q.question}`;
+        const isMulti = q.type === '多选题';
+        const st = practiceState[q.id];                     // 已答状态(锁定)或 undefined
+        optLetters(q).forEach(o => {
+            const div = document.createElement('div');
+            div.dataset.letter = o.letter;
+            div.textContent = o.text;
+            div.className = 'p-opt';
+            if (st) {
+                const inAns = q.answer.includes(o.letter);
+                const inPick = Array.isArray(st.picked) ? st.picked.includes(o.letter) : st.picked === o.letter;
+                if (inAns) div.classList.add('p-correct');
+                else if (inPick) div.classList.add('p-wrong');
+            } else {
+                div.addEventListener('click', () => {
+                    if (isMulti) div.classList.toggle('p-sel');
+                    else recordAndLock(q, o.letter, o.letter === q.answer);
+                });
+            }
+            pOptions.appendChild(div);
+        });
+        if (isMulti && !st) pSubmit.style.display = '';
+        if (st) showFeedback(q, st);
+    };
+
+    function recordAndLock(q, picked, correct) {
+        practiceState[q.id] = { picked, correct };
+        sess.answered++;
+        if (correct) { sess.correct++; wrongSet.delete(q.id); }
+        else wrongSet.add(q.id);
+        saveWrong();
+        renderPractice();
+    }
+
+    const submitMulti = () => {
+        const q = practiceList[practiceIndex];
+        if (!q || practiceState[q.id]) return;
+        const picked = [...pOptions.querySelectorAll('.p-sel')].map(d => d.dataset.letter).sort();
+        if (!picked.length) { pFeedback.textContent = '请至少选择一个选项'; pFeedback.className = 'practice-feedback bad'; return; }
+        const ans = q.answer.split('').sort();
+        const correct = picked.length === ans.length && picked.every((l, i) => l === ans[i]);
+        recordAndLock(q, picked, correct);
+    };
+
+    const setMode = (m) => {
+        appMode = m;
+        if (m === 'practice') {
+            searchView.style.display = 'none';
+            practiceView.style.display = 'block';
+            modeToggleBtn.innerHTML = '🔍 查询';
+            modeToggleBtn.classList.add('active');
+            if (header) header.classList.add('hidden');
+            startPractice();
+        } else {
+            practiceView.style.display = 'none';
+            searchView.style.display = '';
+            modeToggleBtn.innerHTML = '📝 练习';
+            modeToggleBtn.classList.remove('active');
+        }
+    };
+
+    if (modeToggleBtn) {
+        modeToggleBtn.addEventListener('click', () => setMode(appMode === 'practice' ? 'search' : 'practice'));
+        pPrev.addEventListener('click', () => { if (practiceIndex > 0) { practiceIndex--; renderPractice(); } });
+        pNext.addEventListener('click', () => { if (practiceIndex < practiceList.length - 1) { practiceIndex++; renderPractice(); } });
+        pSubmit.addEventListener('click', submitMulti);
+        pRestart.addEventListener('click', startPractice);
+        pShuffle.addEventListener('change', startPractice);
+        pWrongOnly.addEventListener('change', startPractice);
+        pClearWrong.addEventListener('click', () => {
+            if (!wrongSet.size) { pFeedback.textContent = '错题本已是空的'; pFeedback.className = 'practice-feedback'; return; }
+            if (!confirm('确定清空错题本（共 ' + wrongSet.size + ' 题）？')) return;
+            wrongSet.clear(); saveWrong();
+            if (pWrongOnly.checked) startPractice();
         });
     }
 

@@ -319,6 +319,11 @@ h2 {
         font-size: 1.1em;
     }
     .practice-bar { flex-direction: column; align-items: stretch; }
+    /* 移动端把控制行收紧，避免 🔄 等按钮换行 */
+    .category-filter { gap: 8px; }
+    .filter-btn { padding: 7px 13px; }
+    .mode-toggle-btn { padding: 7px 11px; font-size: 1rem; }
+    .toggle-view-btn { width: 34px; height: 34px; font-size: 1rem; }
 }
 
 /* ===== 练习模式 ===== */

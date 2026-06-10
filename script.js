@@ -65,12 +65,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (q.length < 2) return [];
         const qbg = bigrams(q);
         const qtg = trigrams(q);
-        const scored = questionBank
-            .filter(x => x.type === currentFilterType)   // 只在当前题型库内匹配
-            .map(x => {
-                const tgHit = interCount(x._stg, qtg);   // 题干三元组命中数
-                const lcs = lcsLen(q, x._normStem);      // 连续命中字数
-                return { x, tgHit, lcs, score: tgHit + 0.3 * lcs, d: dice(qbg, x._bg) };
+        // 阶段1：用便宜的 trigram 命中数粗筛 top-40（真匹配的题干三元组几乎全中，必在其中）
+        const rough = questionBank
+            .filter(x => x.type === currentFilterType)
+            .map(x => ({ x, tgHit: interCount(x._stg, qtg) }))
+            .filter(s => s.tgHit > 0)
+            .sort((a, b) => b.tgHit - a.tgHit)
+            .slice(0, 40);
+        // 阶段2：只对候选跑较贵的 LCS，算综合分（排名规则与全量一致）
+        const scored = rough
+            .map(s => {
+                const lcs = lcsLen(q, s.x._normStem);
+                return { x: s.x, lcs, score: s.tgHit + 0.3 * lcs, d: dice(qbg, s.x._bg) };
             })
             .filter(s => s.score >= 4)                   // 几乎不相关的直接排除
             .sort((p, n) => (n.score - p.score) || (n.lcs - p.lcs) || (n.d - p.d));

@@ -16,6 +16,11 @@ import sys
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+# 让 onnxruntime / OpenMP 用满 CPU 核（必须在导入 onnxruntime 之前设置环境变量）
+_NCPU = max(1, os.cpu_count() or 1)
+os.environ.setdefault("OMP_NUM_THREADS", str(_NCPU))
+os.environ.setdefault("OPENBLAS_NUM_THREADS", str(_NCPU))
+
 import numpy as np
 import cv2
 from rapidocr_onnxruntime import RapidOCR
@@ -24,8 +29,17 @@ HOST = "127.0.0.1"
 PORT = int(os.environ.get("PORT", "1224"))
 
 print("loading RapidOCR engine ...", flush=True)
-ENGINE = RapidOCR()
-print("RapidOCR ready, listening on %s:%d" % (HOST, PORT), flush=True)
+try:
+    ENGINE = RapidOCR(intra_op_num_threads=_NCPU)   # 显式多线程；不支持则回退
+except Exception:
+    ENGINE = RapidOCR()
+# 启动预热：先跑一次推理，首个真实请求不再有冷启动开销
+try:
+    _warm = np.full((60, 320, 3), 255, np.uint8); _warm[22:40, 24:296] = 0
+    ENGINE(_warm, use_cls=False)
+except Exception:
+    pass
+print("RapidOCR ready (threads=%d), listening on %s:%d" % (_NCPU, HOST, PORT), flush=True)
 
 
 def reading_order(result):
@@ -86,7 +100,7 @@ class Handler(BaseHTTPRequestHandler):
             if arr is None:
                 self._json(200, {"code": 901, "data": "无法解码图片"})
                 return
-            result, _ = ENGINE(arr)
+            result, _ = ENGINE(arr, use_cls=False)    # 截图不旋转，关角度分类省一步推理
             if not result:
                 self._json(200, {"code": 101, "data": ""})
                 return

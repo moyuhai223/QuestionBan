@@ -455,7 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pNext.disabled = practiceIndex === total - 1;
 
         const q = practiceList[practiceIndex];
-        pQ.textContent = `${practiceIndex + 1}. ${q.question}`;
+        pQ.textContent = q.question;   // 题干原样显示（位置见上方进度条，避免与题干自带题号重复）
         const isMulti = q.type === '多选题';
         const st = practiceState[q.id];                     // 已答状态(锁定)或 undefined
         optLetters(q).forEach(o => {

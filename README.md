@@ -54,7 +54,7 @@ curl -fsSL https://raw.githubusercontent.com/moyuhai223/QuestionBan/main/server/
 
 > 也可不用 git、直接部署本地文件夹：`cd server && bash deploy.sh`。本地调试可 `python server/rapidocr_server.py`，或用根目录 `ocr_server.py`（把 `/umi-ocr` 同源代理到本机 Umi-OCR）。
 
-> 题库说明：`database.js` 为 **2026 安全生产月安全知识竞赛题库**（共 882 题：单选 599 / 多选 87 / 判断 196），由 PDF 解析生成。
+> 题库说明：`database.js` 为当前主题库；`database.bak.js` 为原 **2026 安全生产月竞赛题库**（882 题：单选 599 / 多选 87 / 判断 196，由 PDF 解析生成）的备份，需要时可对调两个文件切换。
 
 ## 🛠️ 技术栈 (Technology Stack)
 

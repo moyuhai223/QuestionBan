@@ -119,6 +119,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // 清理浏览器缓存并强制拉取最新版本（不动错题本等本地数据）
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    if (clearCacheBtn) {
+        clearCacheBtn.addEventListener('click', async () => {
+            clearCacheBtn.disabled = true;
+            clearCacheBtn.innerHTML = '⏳';
+            try {
+                if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(regs.map(r => r.unregister()));
+                }
+                if (window.caches && caches.keys) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(k => caches.delete(k)));
+                }
+            } catch (e) { /* 忽略，继续强制刷新 */ }
+            // 加一次性参数绕过缓存，重新拉取最新页面与资源
+            location.replace(location.origin + location.pathname + '?_=' + Date.now());
+        });
+    }
+
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
             if (header) {

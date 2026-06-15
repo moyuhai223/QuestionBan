@@ -3796,7 +3796,7 @@ const questionBank = [
     "type": "判断题",
     "question": "未经安全培训的从业人员，不得上岗作业。",
     "options": [],
-    "answer": "×"
+    "answer": "√"
   },
   {
     "id": 381,

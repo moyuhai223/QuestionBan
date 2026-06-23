@@ -54,7 +54,7 @@ curl -fsSL https://raw.githubusercontent.com/moyuhai223/QuestionBan/main/server/
 
 > 也可不用 git、直接部署本地文件夹：`cd server && bash deploy.sh`。本地调试可 `python server/rapidocr_server.py`，或用根目录 `ocr_server.py`（把 `/umi-ocr` 同源代理到本机 Umi-OCR）。
 
-> 题库说明：`database.js` 为当前主题库（396 题：单选 200 / 多选 50 / 判断 146）。备份：`database.bak.js`(882 题 PDF 解析) / `database.150.bak.js`(150 单选)；需要时对调文件即可切换。
+> 题库说明：`database.js` 为当前主题库（**394 题校正版**：单选 199 / 多选 30 / 判断 165，源自《安全生产月竞赛题库 400 道带答案校正版》，已做答案越界/重复/√× 校验）。备份：`database.anquan.bak.js`(396 题) / `database.bak.js`(882 题 PDF 解析) / `database.150.bak.js`(150 单选)；需要时对调文件即可切换。
 
 ## 🛠️ 技术栈 (Technology Stack)
 

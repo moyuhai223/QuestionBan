@@ -44,15 +44,20 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const interCount = (a, b) => { let c = 0; for (const x of a) if (b.has(x)) c++; return c; };
 
-    // --- 预处理数据 ---
-    questionBank.forEach(q => {
-        const optionsText = q.options.join(' ');
-        q.searchableText = (q.question + ' ' + optionsText).toLowerCase();
-        q._normStem = normText(q.question);            // 仅题干（主匹配键，排除选项干扰）
-        q._norm = normText(q.searchableText);          // 题干+选项（并列时的次判据）
-        q._bg = bigrams(q._norm);
-        q._stg = trigrams(q._normStem);                // 题干三元组集（抗错字匹配用）
-    });
+    // --- 题库引用（可切换）与索引构建 ---
+    // QB 为当前生效题库；首值取 database.js 直接载入的 questionBank（默认库，首屏免等待）。
+    let QB = (typeof questionBank !== 'undefined' && Array.isArray(questionBank)) ? questionBank : [];
+    const buildIndexes = (arr) => {
+        arr.forEach(q => {
+            const optionsText = q.options.join(' ');
+            q.searchableText = (q.question + ' ' + optionsText).toLowerCase();
+            q._normStem = normText(q.question);            // 仅题干（主匹配键，排除选项干扰）
+            q._norm = normText(q.searchableText);          // 题干+选项（并列时的次判据）
+            q._bg = bigrams(q._norm);
+            q._stg = trigrams(q._normStem);                // 题干三元组集（抗错字匹配用）
+        });
+    };
+    buildIndexes(QB);
 
     // 用识别出的文字在【当前选中题型】里精确定位题目。综合评分：
     //   tgHit  = 题干三元组在 OCR 里命中数（主判据，抗散落错字、不计位置）
@@ -66,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const qbg = bigrams(q);
         const qtg = trigrams(q);
         // 阶段1：用便宜的 trigram 命中数粗筛 top-40（真匹配的题干三元组几乎全中，必在其中）
-        const rough = questionBank
+        const rough = QB
             .filter(x => x.type === currentFilterType)
             .map(x => ({ x, tgHit: interCount(x._stg, qtg) }))
             .filter(s => s.tgHit > 0)
@@ -107,9 +112,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let practiceList = [], practiceIndex = 0;
     const practiceState = {};                     // id -> { picked, correct }
     let sess = { answered: 0, correct: 0 };
-    const WRONG_KEY = 'qb_wrong_v1';
+    // 题库选择 + 按题库隔离的错题本（不同题库题号都从 1 起，必须分键存）
+    const BANK_KEY = 'qb_bank_v1';
+    const bankList = (typeof QB_BANKS !== 'undefined') ? QB_BANKS : [];
+    const defaultBankId = (typeof QB_DEFAULT_BANK !== 'undefined') ? QB_DEFAULT_BANK
+        : (bankList[0] && bankList[0].id);
+    const bankExists = (id) => bankList.some(b => b.id === id);
+    let currentBankId = localStorage.getItem(BANK_KEY);
+    if (!bankExists(currentBankId)) currentBankId = defaultBankId;
+    const wrongKeyFor = (id) => 'qb_wrong_v1__' + id;
     let wrongSet = new Set();
-    try { wrongSet = new Set(JSON.parse(localStorage.getItem(WRONG_KEY) || '[]')); } catch (e) {}
+    const loadWrong = (id) => {
+        try { wrongSet = new Set(JSON.parse(localStorage.getItem(wrongKeyFor(id)) || '[]')); }
+        catch (e) { wrongSet = new Set(); }
+    };
+    loadWrong(currentBankId);
 
     // --- 事件监听 ---
     toggleViewBtn.addEventListener('click', () => {
@@ -210,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 按空格拆成多个关键词，要求全部命中（AND）；单个词时即普通子串搜索
         const tokens = raw.split(/\s+/).filter(Boolean);
-        const questionsOfType = questionBank.filter(q => q.type === currentFilterType);
+        const questionsOfType = QB.filter(q => q.type === currentFilterType);
         const filteredResults = questionsOfType.filter(q =>
             tokens.every(t => q.searchableText.includes(t)));
         displayResults(filteredResults);
@@ -243,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentListItem.classList.add('selected');
             currentListItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-        const question = questionBank.find(q => q.id === parseInt(questionId, 10));
+        const question = QB.find(q => q.id === parseInt(questionId, 10));
         if (!question) return;
         let detailsHtml = `<div class="question-text">${question.question}</div>`;
         if (question.options && question.options.length > 0) {
@@ -406,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pOptShuffle = document.getElementById('practiceOptShuffle');
     const pWrongOnly = document.getElementById('practiceWrongOnly');
 
-    const saveWrong = () => { try { localStorage.setItem(WRONG_KEY, JSON.stringify([...wrongSet])); } catch (e) {} };
+    const saveWrong = () => { try { localStorage.setItem(wrongKeyFor(currentBankId), JSON.stringify([...wrongSet])); } catch (e) {} };
     const shuffleArr = (arr) => {
         for (let i = arr.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0;[arr[i], arr[j]] = [arr[j], arr[i]]; }
         return arr;
@@ -436,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const getView = (q) => (viewMap[q.id] || (viewMap[q.id] = buildView(q)));
 
     const startPractice = () => {
-        let pool = questionBank.filter(q => q.type === currentFilterType && q.answer);
+        let pool = QB.filter(q => q.type === currentFilterType && q.answer);
         if (pWrongOnly.checked) pool = pool.filter(q => wrongSet.has(q.id));
         practiceList = pShuffle.checked ? shuffleArr(pool.slice()) : pool.slice();
         practiceIndex = 0;
@@ -556,6 +573,62 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ===== 多题库：下拉选择与加载 =====
+    const bankSelect = document.getElementById('bankSelect');
+    // 题库文件是 `const questionBank = [ ... ];`，const 不能重复声明，故 fetch 文本后
+    // 截取首个 `[` 到末个 `]` 再 JSON.parse（文件均为 JSON.stringify 格式）。
+    const fetchBankArray = async (file) => {
+        const ver = (typeof QB_BANK_VER !== 'undefined') ? QB_BANK_VER : '1';
+        const res = await fetch(file + '?v=' + ver);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+        const a = text.indexOf('['), b = text.lastIndexOf(']');
+        if (a < 0 || b <= a) throw new Error('题库格式无法解析');
+        return JSON.parse(text.slice(a, b + 1));
+    };
+    const applyBank = (arr, bankId) => {
+        QB = arr;
+        buildIndexes(QB);
+        currentBankId = bankId;
+        loadWrong(bankId);
+        localStorage.setItem(BANK_KEY, bankId);
+        searchInput.value = '';
+        if (appMode === 'practice') {
+            startPractice();
+        } else {
+            resultsList.innerHTML = '<li class="placeholder">请在上方输入关键词开始搜索...</li>';
+            detailsContent.innerHTML = '<p class="placeholder">输入关键词后，结果将在此显示。</p>';
+        }
+    };
+    const loadBank = async (bankId) => {
+        const meta = bankList.find(b => b.id === bankId);
+        if (!meta) return;
+        // 默认库且 database.js 已把它载入内存 → 直接用，无需再 fetch
+        if (bankId === defaultBankId && typeof questionBank !== 'undefined' && Array.isArray(questionBank)) {
+            applyBank(questionBank, bankId);
+            return;
+        }
+        if (bankSelect) bankSelect.disabled = true;
+        try {
+            const arr = await fetchBankArray(meta.file);
+            applyBank(arr, bankId);
+        } catch (e) {
+            alert('题库「' + meta.name + '」加载失败：' + (e && e.message ? e.message : e));
+            if (bankSelect) bankSelect.value = currentBankId;   // 还原下拉
+        } finally {
+            if (bankSelect) bankSelect.disabled = false;
+        }
+    };
+    if (bankSelect) {
+        bankList.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.id; opt.textContent = b.name;
+            bankSelect.appendChild(opt);
+        });
+        bankSelect.value = currentBankId;
+        bankSelect.addEventListener('change', () => loadBank(bankSelect.value));
+    }
+
     // --- 初始化 ---
     const debouncedSearch = debounce(performSearch, 300);
     searchInput.addEventListener('input', debouncedSearch);
@@ -564,4 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 初始化页面提示信息，不主动调用 performSearch()
     resultsList.innerHTML = '<li class="placeholder">请在上方输入关键词开始搜索...</li>';
     detailsContent.innerHTML = '<p class="placeholder">输入关键词后，结果将在此显示。</p>';
+
+    // 若上次选择的不是默认库，启动时拉取替换（默认库已由 database.js 即时载入）
+    if (currentBankId !== defaultBankId) loadBank(currentBankId);
 });

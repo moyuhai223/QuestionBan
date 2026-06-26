@@ -1,6 +1,6 @@
 # 今天开“卷” 
 
-![项目版本](https://img.shields.io/badge/Version-2.0%20(Feature%20Complete)-brightgreen) ![技术栈](https://img.shields.io/badge/Tech-HTML%2C%20CSS%2C%20JS-blue) ![兼容性](https://img.shields.io/badge/Responsive-PC%20%26%20Mobile-yellow)
+![项目版本](https://img.shields.io/badge/Version-2.1%20(Multi--Bank)-brightgreen) ![技术栈](https://img.shields.io/badge/Tech-HTML%2C%20CSS%2C%20JS-blue) ![兼容性](https://img.shields.io/badge/Responsive-PC%20%26%20Mobile-yellow)
 
 一个纯前端、功能全面、交互体验流畅、响应式设计的安全生产知识题库Web应用。旨在提供一个零依赖、易部署、方便快捷的在线学习和检索工具。
 

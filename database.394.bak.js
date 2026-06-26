@@ -1,3 +1,4 @@
+const questionBankName = "竞赛400校正 · 394题";
 const questionBank = [
   {
     "id": 1,

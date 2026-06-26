@@ -1,3 +1,4 @@
+const questionBankName = "安全生产月 · 882题";
 const questionBank = [
   {
     "id": 1,

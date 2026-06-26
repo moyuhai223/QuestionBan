@@ -575,23 +575,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ===== 多题库：下拉选择与加载 =====
     const bankSelect = document.getElementById('bankSelect');
-    // 题库文件是 `const questionBank = [ ... ];`，const 不能重复声明，故 fetch 文本后
-    // 截取首个 `[` 到末个 `]` 再 JSON.parse（文件均为 JSON.stringify 格式）。
-    const fetchBankArray = async (file) => {
+    const bankInfo = document.getElementById('bankInfo');
+    const bankCache = {};   // id -> { arr, name }，缓存已取过的题库（切换瞬时）
+
+    // 默认库由 <script src="database.js"> 直接载入内存；其名字取自 questionBankName
+    if (typeof questionBank !== 'undefined' && Array.isArray(questionBank)) {
+        bankCache[defaultBankId] = {
+            arr: questionBank,
+            name: (typeof questionBankName !== 'undefined') ? questionBankName : '默认题库'
+        };
+    }
+    const bankNameOf = (id) => (bankCache[id] && bankCache[id].name) || id;
+
+    // 题库文件形如 `const questionBankName="X"; const questionBank=[...]`。const 不能重复声明，
+    // 故 fetch 成文本后：正则读题库名 + 截取首个 `[` 到末个 `]` 再 JSON.parse 取题目数组。
+    const fetchBank = async (meta) => {
         const ver = (typeof QB_BANK_VER !== 'undefined') ? QB_BANK_VER : '1';
-        const res = await fetch(file + '?v=' + ver);
+        const res = await fetch(meta.file + '?v=' + ver);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const text = await res.text();
         const a = text.indexOf('['), b = text.lastIndexOf(']');
         if (a < 0 || b <= a) throw new Error('题库格式无法解析');
-        return JSON.parse(text.slice(a, b + 1));
+        const arr = JSON.parse(text.slice(a, b + 1));
+        const nm = (text.match(/questionBankName\s*=\s*["'](.+?)["']/) || [])[1] || meta.id;
+        return { arr, name: nm };
     };
-    const applyBank = (arr, bankId) => {
+
+    const updateBankInfo = (arr, name) => {
+        if (!bankInfo) return;
+        const t = {};
+        arr.forEach(q => { t[q.type] = (t[q.type] || 0) + 1; });
+        const parts = [];
+        ['单选题', '多选题', '判断题'].forEach(tp => { if (t[tp]) parts.push(tp.replace('题', '') + t[tp]); });
+        bankInfo.textContent = '📚 当前题库：' + (name || '') + '　共 ' + arr.length + ' 题' +
+            (parts.length ? '（' + parts.join(' / ') + '）' : '');
+    };
+
+    const applyBank = (arr, bankId, name) => {
         QB = arr;
         buildIndexes(QB);
         currentBankId = bankId;
         loadWrong(bankId);
         localStorage.setItem(BANK_KEY, bankId);
+        if (bankSelect) bankSelect.value = bankId;
+        updateBankInfo(arr, name || bankNameOf(bankId));
         searchInput.value = '';
         if (appMode === 'practice') {
             startPractice();
@@ -600,33 +627,47 @@ document.addEventListener('DOMContentLoaded', () => {
             detailsContent.innerHTML = '<p class="placeholder">输入关键词后，结果将在此显示。</p>';
         }
     };
+
     const loadBank = async (bankId) => {
         const meta = bankList.find(b => b.id === bankId);
         if (!meta) return;
-        // 默认库且 database.js 已把它载入内存 → 直接用，无需再 fetch
-        if (bankId === defaultBankId && typeof questionBank !== 'undefined' && Array.isArray(questionBank)) {
-            applyBank(questionBank, bankId);
-            return;
-        }
+        if (bankCache[bankId]) { applyBank(bankCache[bankId].arr, bankId, bankCache[bankId].name); return; }
         if (bankSelect) bankSelect.disabled = true;
         try {
-            const arr = await fetchBankArray(meta.file);
-            applyBank(arr, bankId);
+            const got = await fetchBank(meta);
+            bankCache[bankId] = got;
+            const o = bankSelect && [...bankSelect.options].find(x => x.value === bankId);
+            if (o) o.textContent = got.name;
+            applyBank(got.arr, bankId, got.name);
         } catch (e) {
-            alert('题库「' + meta.name + '」加载失败：' + (e && e.message ? e.message : e));
+            alert('题库加载失败：' + (e && e.message ? e.message : e));
             if (bankSelect) bankSelect.value = currentBankId;   // 还原下拉
         } finally {
             if (bankSelect) bankSelect.disabled = false;
         }
     };
+
     if (bankSelect) {
         bankList.forEach(b => {
             const opt = document.createElement('option');
-            opt.value = b.id; opt.textContent = b.name;
+            opt.value = b.id;
+            opt.textContent = bankNameOf(b.id) === b.id ? '加载中…' : bankNameOf(b.id);
             bankSelect.appendChild(opt);
         });
         bankSelect.value = currentBankId;
         bankSelect.addEventListener('change', () => loadBank(bankSelect.value));
+        // 预取非默认题库：读出题库名填进下拉，并缓存数组（之后切换瞬时）
+        bankList.filter(b => !bankCache[b.id]).forEach(async (b) => {
+            try {
+                const got = await fetchBank(b);
+                bankCache[b.id] = got;
+                const o = [...bankSelect.options].find(x => x.value === b.id);
+                if (o) o.textContent = got.name;
+            } catch (e) {
+                const o = [...bankSelect.options].find(x => x.value === b.id);
+                if (o) o.textContent = b.id;
+            }
+        });
     }
 
     // --- 初始化 ---
@@ -638,6 +679,6 @@ document.addEventListener('DOMContentLoaded', () => {
     resultsList.innerHTML = '<li class="placeholder">请在上方输入关键词开始搜索...</li>';
     detailsContent.innerHTML = '<p class="placeholder">输入关键词后，结果将在此显示。</p>';
 
-    // 若上次选择的不是默认库，启动时拉取替换（默认库已由 database.js 即时载入）
-    if (currentBankId !== defaultBankId) loadBank(currentBankId);
+    // 载入起始题库（默认库走内存，记忆的非默认库则 fetch），并显示当前题库信息
+    loadBank(currentBankId);
 });

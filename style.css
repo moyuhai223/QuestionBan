@@ -96,26 +96,35 @@ h2 {
     font-weight: bold;
 }
 
-/* 题库选择下拉 */
+/* 题库选择下拉（用原生外观，确保各浏览器都能显示选中项文字） */
 .bank-select {
-    padding: 7px 30px 7px 14px;
+    padding: 6px 10px;
     font-size: 0.9rem;
+    line-height: 1.3;
     border: 1px solid #007bff;
     background-color: #fff;
     color: #0056b3;
-    border-radius: 20px;
+    border-radius: 8px;
     cursor: pointer;
-    max-width: 60vw;
+    max-width: 56vw;
     transition: all 0.3s ease;
-    -webkit-appearance: none;
-    appearance: none;
-    /* 自绘下拉箭头 */
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23007bff' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
 }
 .bank-select:hover { background-color: #f0f7ff; }
 .bank-select:disabled { opacity: .6; cursor: progress; }
+
+/* 当前题库信息条 */
+.bank-info {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #0056b3;
+    background: #eef5ff;
+    border: 1px solid #d6e6ff;
+    border-radius: 8px;
+    padding: 6px 10px;
+    margin: -6px auto 16px;
+    max-width: 90%;
+}
+.bank-info:empty { display: none; }
 
 /* 视图切换按钮 (已修正居中) */
 .toggle-view-btn {
@@ -343,7 +352,8 @@ h2 {
     /* 移动端把控制行收紧，避免 🔄 等按钮换行 */
     .category-filter { gap: 8px; }
     .filter-btn { padding: 7px 13px; }
-    .bank-select { padding: 6px 26px 6px 10px; font-size: 0.82rem; max-width: 46vw; background-position: right 9px center; }
+    .bank-select { padding: 5px 8px; font-size: 0.82rem; max-width: 44vw; }
+    .bank-info { font-size: 0.78rem; padding: 5px 8px; }
     .mode-toggle-btn { padding: 7px 11px; font-size: 1rem; }
     .toggle-view-btn { width: 34px; height: 34px; font-size: 1rem; }
 }

@@ -1,3 +1,4 @@
+const questionBankName = "安全知识 · 396题";
 const questionBank = [
   {
     "id": 1,

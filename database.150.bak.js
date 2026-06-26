@@ -1,3 +1,4 @@
+const questionBankName = "单选速记 · 150题";
 const questionBank = [
   {
     "id": 1,
